@@ -952,6 +952,24 @@ def show_closed_list(casos_df: pd.DataFrame):
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
+    # ── Password gate ──────────────────────────────────────────────────────────
+    try:
+        app_password = st.secrets.get('app_password', '')
+    except Exception:
+        app_password = ''
+
+    if app_password:
+        if not st.session_state.get('authenticated'):
+            st.title('🎯 Gestión Compensaciones')
+            pwd = st.text_input('Contraseña', type='password', placeholder='Ingresá la contraseña')
+            if st.button('Ingresar', type='primary'):
+                if pwd == app_password:
+                    st.session_state.authenticated = True
+                    st.rerun()
+                else:
+                    st.error('Contraseña incorrecta')
+            st.stop()
+
     st.title('🎯 Gestión Compensaciones')
 
     if 'view' not in st.session_state:
