@@ -51,49 +51,119 @@ NUM_COLS_CASOS = [
 
 st.markdown("""
 <style>
+/* ── MS Brand ──────────────────────────────────────────────────────────────── */
+:root {
+    --ms-green:        #33AD73;
+    --ms-green-dark:   #27945E;
+    --ms-green-light:  #E8F5E9;
+    --ms-dark:         #0F1923;
+    --ms-purple:       #7B1FA2;
+    --ms-purple-light: #F3E5F5;
+    --ms-amber:        #E65100;
+    --ms-amber-light:  #FFF8E1;
+    --ms-text:         #1A2332;
+    --ms-text-light:   #64748B;
+    --ms-border:       #E2E8F0;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────────── */
+.ms-header {
+    background: var(--ms-dark);
+    border-radius: 10px;
+    padding: 14px 22px;
+    margin-bottom: 20px;
+}
+.ms-header-title {
+    color: white;
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0 0 2px 0;
+}
+.ms-header-sub {
+    color: var(--ms-green);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* ── Cards ─────────────────────────────────────────────────────────────────── */
 .caso-card {
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--ms-border);
     border-radius: 8px;
     padding: 12px 16px;
     margin-bottom: 8px;
     background: white;
 }
-.caso-card:hover { border-color: #1976d2; }
+.caso-card:hover { border-color: var(--ms-green); }
+
+/* ── Badges ────────────────────────────────────────────────────────────────── */
 .badge {
     display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.78rem;
-    font-weight: 600;
-}
-.badge-feedback { background: #e3f2fd; color: #1565c0; }
-.badge-ajuste   { background: #e8f5e9; color: #2e7d32; }
-.badge-recat    { background: #fff3e0; color: #e65100; }
-.section-header {
-    font-size: 1rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
     font-weight: 700;
-    color: #424242;
-    border-left: 3px solid #1976d2;
-    padding-left: 8px;
-    margin: 16px 0 8px 0;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
+.badge-feedback { background: var(--ms-amber-light);  color: var(--ms-amber); }
+.badge-ajuste   { background: var(--ms-green-light);  color: var(--ms-green-dark); }
+.badge-recat    { background: var(--ms-purple-light); color: var(--ms-purple); }
+
+/* ── Section headers ───────────────────────────────────────────────────────── */
+.section-header {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--ms-text-light);
+    border-left: 3px solid var(--ms-green);
+    padding-left: 8px;
+    margin: 18px 0 8px 0;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+/* ── Budget box ────────────────────────────────────────────────────────────── */
 .budget-box {
-    background: #e8f5e9;
+    background: var(--ms-green-light);
+    border-left: 4px solid var(--ms-green);
     border-radius: 8px;
-    padding: 16px 24px;
+    padding: 14px 20px;
     margin-bottom: 16px;
 }
+
+/* ── Metrics ───────────────────────────────────────────────────────────────── */
 [data-testid="stMetricLabel"], [data-testid="stMetricLabel"] * {
-    font-size: 0.72rem !important;
+    font-size: 0.68rem !important;
     line-height: 1.3 !important;
+    color: var(--ms-text-light) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
 }
 [data-testid="stMetricValue"], [data-testid="stMetricValue"] * {
     font-size: 1.05rem !important;
     font-weight: 700 !important;
     line-height: 1.2 !important;
+    color: var(--ms-text) !important;
 }
 [data-testid="stMetricDelta"], [data-testid="stMetricDelta"] * {
     font-size: 0.75rem !important;
+}
+
+/* ── Primary button → MS green ─────────────────────────────────────────────── */
+[data-testid="stBaseButton-primary"] > div {
+    background-color: var(--ms-green) !important;
+    border-color: var(--ms-green) !important;
+}
+[data-testid="stBaseButton-primary"]:hover > div {
+    background-color: var(--ms-green-dark) !important;
+    border-color: var(--ms-green-dark) !important;
+}
+
+/* ── Tabs ──────────────────────────────────────────────────────────────────── */
+[data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+    color: var(--ms-green) !important;
+    border-bottom-color: var(--ms-green) !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -970,7 +1040,12 @@ def main():
                     st.error('Contraseña incorrecta')
             st.stop()
 
-    st.title('🎯 Gestión Compensaciones')
+    st.markdown("""
+    <div class="ms-header">
+      <div class="ms-header-title">Gestión Compensaciones</div>
+      <div class="ms-header-sub">Performance Cases &nbsp;·&nbsp; Making Sense</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     if 'view' not in st.session_state:
         st.session_state.view = 'open_list'
