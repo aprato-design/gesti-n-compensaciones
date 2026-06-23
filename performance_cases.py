@@ -104,10 +104,10 @@ st.markdown("""
 @st.cache_resource
 def get_gc():
     scopes = ['https://www.googleapis.com/auth/spreadsheets']
-    try:
+    if 'gcp_service_account' in st.secrets:
         creds = Credentials.from_service_account_info(
-            dict(st.secrets["gcp_service_account"]), scopes=scopes)
-    except Exception:
+            dict(st.secrets['gcp_service_account']), scopes=scopes)
+    else:
         creds_file = Path(__file__).parent / 'talentserviceproject-1ce2ed91696b.json'
         creds = Credentials.from_service_account_file(str(creds_file), scopes=scopes)
     return gspread.authorize(creds)
