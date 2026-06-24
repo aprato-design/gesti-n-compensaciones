@@ -165,6 +165,37 @@ st.markdown("""
     color: var(--ms-green) !important;
     border-bottom-color: var(--ms-green) !important;
 }
+
+/* ── Compact list rows ─────────────────────────────────────────────────────── */
+[data-testid="stHorizontalBlock"] .element-container {
+    margin-bottom: 0 !important;
+}
+[data-testid="stHorizontalBlock"] [data-testid="stMarkdownContainer"] p {
+    margin: 0 !important;
+    line-height: 1.4 !important;
+    padding: 3px 0 !important;
+}
+[data-testid="stHorizontalBlock"] [data-testid="stText"] p {
+    margin: 0 !important;
+    line-height: 1.4 !important;
+    padding: 3px 0 !important;
+    font-size: 0.88rem !important;
+}
+.list-sep {
+    border: none;
+    border-top: 1px solid var(--ms-border);
+    margin: 2px 0 !important;
+}
+.list-header {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--ms-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 4px 0 6px 0;
+    border-bottom: 2px solid var(--ms-border);
+    margin-bottom: 4px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -963,20 +994,27 @@ def show_open_list(casos_df: pd.DataFrame):
         st.info('No hay casos abiertos.')
         return
 
+    h1, h2, h3, h4, h5 = st.columns([3, 2, 2, 2, 1])
+    h1.markdown('<div class="list-header">Colaborador</div>', unsafe_allow_html=True)
+    h2.markdown('<div class="list-header">Code</div>', unsafe_allow_html=True)
+    h3.markdown('<div class="list-header">Tipo</div>', unsafe_allow_html=True)
+    h4.markdown('<div class="list-header">Diferencial</div>', unsafe_allow_html=True)
+    h5.markdown('<div class="list-header"></div>', unsafe_allow_html=True)
+
     for _, row in open_df.iterrows():
         diff = float(row.get('differential', 0) or 0)
         diff_str = f'{diff:+.2f} USD/H' if diff != 0 else 'Sin ajuste'
         c1, c2, c3, c4, c5 = st.columns([3, 2, 2, 2, 1])
         c1.markdown(f"**{row.get('employee_name', '—')}**")
-        c2.write(row.get('code', '—'))
+        c2.markdown(f"`{row.get('code', '—')}`")
         c3.markdown(badge_html(row.get('tipo', '—')), unsafe_allow_html=True)
-        c4.write(diff_str)
+        c4.markdown(f"<span style='font-size:0.88rem'>{diff_str}</span>", unsafe_allow_html=True)
         with c5:
             if st.button('Ver →', key=f"open_{row['id']}"):
                 st.session_state.editing_id = row['id']
                 st.session_state.view = 'edit'
                 st.rerun()
-        st.divider()
+        st.markdown('<hr class="list-sep">', unsafe_allow_html=True)
 
 
 def show_closed_list(casos_df: pd.DataFrame):
@@ -1002,21 +1040,29 @@ def show_closed_list(casos_df: pd.DataFrame):
         st.info('No hay casos cerrados.')
         return
 
+    h1, h2, h3, h4, h5, h6 = st.columns([3, 2, 2, 2, 2, 1])
+    h1.markdown('<div class="list-header">Colaborador</div>', unsafe_allow_html=True)
+    h2.markdown('<div class="list-header">Code</div>', unsafe_allow_html=True)
+    h3.markdown('<div class="list-header">Tipo</div>', unsafe_allow_html=True)
+    h4.markdown('<div class="list-header">Diferencial</div>', unsafe_allow_html=True)
+    h5.markdown('<div class="list-header">Cerrado</div>', unsafe_allow_html=True)
+    h6.markdown('<div class="list-header"></div>', unsafe_allow_html=True)
+
     for _, row in closed_df.iterrows():
         diff = float(row.get('differential', 0) or 0)
         diff_str = f'{diff:+.2f} USD/H' if diff != 0 else 'Sin ajuste'
         c1, c2, c3, c4, c5, c6 = st.columns([3, 2, 2, 2, 2, 1])
         c1.markdown(f"**{row.get('employee_name', '—')}**")
-        c2.write(row.get('code', '—'))
+        c2.markdown(f"`{row.get('code', '—')}`")
         c3.markdown(badge_html(row.get('tipo', '—')), unsafe_allow_html=True)
-        c4.write(diff_str)
-        c5.write(row.get('closed_at', '—'))
+        c4.markdown(f"<span style='font-size:0.88rem'>{diff_str}</span>", unsafe_allow_html=True)
+        c5.markdown(f"<span style='font-size:0.82rem;color:var(--ms-text-light)'>{row.get('closed_at', '—')}</span>", unsafe_allow_html=True)
         with c6:
             if st.button('Ver', key=f"closed_{row['id']}"):
                 st.session_state.editing_id = row['id']
                 st.session_state.view = 'view_closed'
                 st.rerun()
-        st.divider()
+        st.markdown('<hr class="list-sep">', unsafe_allow_html=True)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
