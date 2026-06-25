@@ -23,10 +23,7 @@ TIPOS_CASO = ['Solo feedback', 'Ajuste compensación', 'Recat sin ajuste', 'Reca
 STATUS_OPEN = 'Abierto'
 STATUS_CLOSED = 'Cerrado'
 
-try:
-    READ_ONLY = bool(st.secrets['read_only'])
-except Exception:
-    READ_ONLY = False
+READ_ONLY = False  # overridden at login by session state
 
 CASOS_COLS = [
     'id', 'created_at', 'created_by',
@@ -991,7 +988,7 @@ def show_open_list(casos_df: pd.DataFrame):
 
     col_h, col_btn = st.columns([4, 1])
     col_h.markdown(f'#### Casos abiertos ({len(open_df)})')
-    if not READ_ONLY:
+    if not st.session_state.get('read_only', False):
         with col_btn:
             if st.button('➕ Nuevo caso', type='primary', use_container_width=True):
                 st.session_state.view = 'new'
@@ -1077,17 +1074,29 @@ def show_closed_list(casos_df: pd.DataFrame):
 def main():
     # ── Password gate ──────────────────────────────────────────────────────────
     try:
-        app_password = st.secrets.get('app_password', '')
+        editor_pwd = st.secrets.get('editor_password', '')
+        viewer_pwd = st.secrets.get('viewer_password', '')
     except Exception:
-        app_password = ''
+        editor_pwd = ''
+        viewer_pwd = ''
 
-    if app_password:
+    if editor_pwd or viewer_pwd:
         if not st.session_state.get('authenticated'):
-            st.title('🎯 Gestión Compensaciones')
+            st.markdown("""
+            <div class="ms-header">
+              <div class="ms-header-title">Gestión Compensaciones</div>
+              <div class="ms-header-sub">Performance Cases &nbsp;·&nbsp; Making Sense</div>
+            </div>
+            """, unsafe_allow_html=True)
             pwd = st.text_input('Contraseña', type='password', placeholder='Ingresá la contraseña')
             if st.button('Ingresar', type='primary'):
-                if pwd == app_password:
+                if editor_pwd and pwd == editor_pwd:
                     st.session_state.authenticated = True
+                    st.session_state.read_only = False
+                    st.rerun()
+                elif viewer_pwd and pwd == viewer_pwd:
+                    st.session_state.authenticated = True
+                    st.session_state.read_only = True
                     st.rerun()
                 else:
                     st.error('Contraseña incorrecta')
@@ -1122,7 +1131,8 @@ def main():
 
     # ── Form views (full screen, no tabs) ─────────────────────────────────────
     if view in ('new', 'edit', 'view_closed'):
-        if view == 'new' and not READ_ONLY:
+        _ro = st.session_state.get('read_only', False)
+        if view == 'new' and not _ro:
             show_caso_form(empleados_df, bandas_df)
         elif view == 'new':
             st.session_state.view = 'open_list'
@@ -1136,7 +1146,7 @@ def main():
                     st.rerun()
             else:
                 show_caso_form(empleados_df, bandas_df, caso_row.iloc[0].to_dict(),
-                               force_readonly=READ_ONLY)
+                               force_readonly=_ro)
         return
 
     # ── List views with tabs ───────────────────────────────────────────────────
