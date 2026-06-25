@@ -200,6 +200,23 @@ st.markdown("""
     border-bottom: 2px solid var(--ms-border);
     margin-bottom: 4px;
 }
+.info-chip {
+    font-size: 0.76rem;
+    color: var(--ms-text-light);
+    background: #F8FAFC;
+    border: 1px solid var(--ms-border);
+    border-radius: 6px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
+.info-chip b { color: var(--ms-text); }
+.summary-card {
+    background: white;
+    border: 1px solid var(--ms-border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 6px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -589,13 +606,10 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
     vars = load_variables()
 
     # ── Employee selector ──────────────────────────────────────────────────────
-    st.markdown('<div class="section-header">Colaborador</div>', unsafe_allow_html=True)
-
     if is_edit:
         emp_email = caso['employee_email']
         emp_row = empleados_df[empleados_df['email'] == emp_email]
         emp = emp_row.iloc[0] if not emp_row.empty else None
-        st.markdown(f"**{caso['employee_name']}** — `{caso['employee_email']}`")
     else:
         emp_options = [''] + sorted(empleados_df['name'].tolist())
         sel = st.selectbox('Seleccionar colaborador', emp_options, key='form_emp_select')
@@ -610,8 +624,8 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
     if is_edit:
         code = caso['code']
         seniority = caso['seniority']
-        hire_date = caso.get('hire_date', '')
-        xm = caso.get('xm', '')
+        hire_date = caso.get('hire_date', '') or (emp.get('hire_date', '') if emp is not None else '')
+        xm = caso.get('xm', '') or (emp.get('xm', '') if emp is not None else '')
         agreement = caso.get('agreement', '')
         per = caso.get('per', 'Month')
         currency = caso.get('currency', 'USD')
@@ -643,27 +657,76 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
         new_code_empleado = emp.get('new_code', '')
         emp_name = emp['name']
 
-    # ── Info grid ─────────────────────────────────────────────────────────────
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    c1.metric('Code / Level', code or '—')
-    c2.metric('Seniority', seniority or '—')
-    c3.metric('Agreement', agreement or '—')
-    c4.metric('Moneda / Per', f'{currency} / {per}')
-    c5.metric('xM', xm or '—')
-    c6.metric('Hire Date', hire_date or '—')
+    # ── Info card (Colaborador) ───────────────────────────────────────────────
+    def _chip(label, value):
+        return (f'<span class="info-chip"><b>{label}:</b> {value or "—"}</span>')
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric('Bill actual', fmt_usd(cur_bill))
-    c2.metric('PayRoll actual', fmt_usd(cur_payroll))
-    c3.metric('Costo USD/H actual', fmt_usd(cur_costo))
+    col_card_html = f"""
+    <div class="summary-card">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--ms-text-light);
+                  text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">
+        Colaborador
+      </div>
+      <div style="font-size:1rem;font-weight:700;color:var(--ms-text);margin-bottom:10px;">
+        {emp_name}
+        <span style="font-size:0.82rem;font-weight:400;color:var(--ms-green);margin-left:10px;">
+          {emp_email}
+        </span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+        {_chip('Code', code)}
+        {_chip('Seniority', seniority)}
+        {_chip('Agreement', agreement)}
+        {_chip('Moneda / Per', f'{currency} / {per}')}
+        {_chip('xM', xm)}
+        {_chip('Hire Date', hire_date)}
+      </div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;border-top:1px solid var(--ms-border);
+                  padding-top:8px;">
+        <div><span style="font-size:0.72rem;color:var(--ms-text-light);text-transform:uppercase;
+                          letter-spacing:0.05em;">Bill actual</span>
+             <div style="font-size:1rem;font-weight:700;color:var(--ms-text);">
+               {fmt_usd(cur_bill)}</div></div>
+        <div><span style="font-size:0.72rem;color:var(--ms-text-light);text-transform:uppercase;
+                          letter-spacing:0.05em;">PayRoll actual</span>
+             <div style="font-size:1rem;font-weight:700;color:var(--ms-text);">
+               {fmt_usd(cur_payroll)}</div></div>
+        <div><span style="font-size:0.72rem;color:var(--ms-text-light);text-transform:uppercase;
+                          letter-spacing:0.05em;">Costo USD/H actual</span>
+             <div style="font-size:1rem;font-weight:700;color:var(--ms-green);">
+               {fmt_usd(cur_costo)}</div></div>
+      </div>
+    </div>
+    """
+    st.markdown(col_card_html, unsafe_allow_html=True)
 
     # ── Banda actual ──────────────────────────────────────────────────────────
-    st.markdown('<div class="section-header">Banda actual</div>', unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns(4)
-    c1.write(f'**Code:** `{new_code_empleado or "—"}`')
-    c2.metric('Mínimo', fmt_usd(banda_min))
-    c3.metric('Medio', fmt_usd(banda_med))
-    c4.metric('Máximo', fmt_usd(banda_max))
+    banda_card_html = f"""
+    <div class="summary-card" style="margin-top:6px;">
+      <div style="font-size:0.8rem;font-weight:700;color:var(--ms-text-light);
+                  text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">
+        Banda actual
+      </div>
+      <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+        <span class="info-chip" style="font-size:0.85rem;padding:3px 12px;">
+          <b>Code:</b> {new_code_empleado or '—'}
+        </span>
+        <div><span style="font-size:0.72rem;color:var(--ms-text-light);text-transform:uppercase;
+                          letter-spacing:0.05em;">Mínimo</span>
+             <div style="font-size:1rem;font-weight:600;color:var(--ms-text);">
+               {fmt_usd(banda_min)}</div></div>
+        <div><span style="font-size:0.72rem;color:var(--ms-text-light);text-transform:uppercase;
+                          letter-spacing:0.05em;">Medio</span>
+             <div style="font-size:1rem;font-weight:600;color:var(--ms-text);">
+               {fmt_usd(banda_med)}</div></div>
+        <div><span style="font-size:0.72rem;color:var(--ms-text-light);text-transform:uppercase;
+                          letter-spacing:0.05em;">Máximo</span>
+             <div style="font-size:1rem;font-weight:600;color:var(--ms-text);">
+               {fmt_usd(banda_max)}</div></div>
+      </div>
+    </div>
+    """
+    st.markdown(banda_card_html, unsafe_allow_html=True)
 
     # ── Pares ─────────────────────────────────────────────────────────────────
     st.markdown('<div class="section-header">Pares — mismo code y siguiente nivel</div>',
@@ -683,10 +746,22 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
         peers['Nivel'] = peers['new_code'].apply(
             lambda c: '➡ Siguiente' if c == next_code else 'Actual'
         )
+        def _gap_banda(row):
+            c, bmin, bmax = row['costo_usd_h'], row['banda_min'], row['banda_max']
+            if not bmin or not bmax:
+                return '—'
+            if bmin <= c <= bmax:
+                return 'ok'
+            if c < bmin:
+                return f"{(c - bmin) / bmin * 100:.1f}%"
+            return f"+{(c - bmax) / bmax * 100:.1f}%"
+
+        peers['gap_banda'] = peers.apply(_gap_banda, axis=1)
+
         peers_cols = ['name', 'Nivel', 'code', 'seniority', 'bill', 'payroll',
-                      'costo_usd_h', 'banda_min', 'banda_med', 'banda_max']
+                      'costo_usd_h', 'gap_banda', 'banda_min', 'banda_med', 'banda_max']
         peers_col_names = ['Nombre', 'Nivel', 'Code', 'Seniority', 'Bill', 'PayRoll',
-                           'Costo USD/H', 'Banda Mín', 'Banda Med', 'Banda Máx']
+                           'Costo USD/H', 'GAP Banda', 'Banda Mín', 'Banda Med', 'Banda Máx']
         fmt_map = {
             'Bill': fmt_usd, 'PayRoll': fmt_usd, 'Costo USD/H': fmt_usd,
             'Banda Mín': fmt_usd, 'Banda Med': fmt_usd, 'Banda Máx': fmt_usd,
@@ -710,9 +785,19 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
             )
             return [f'background-color: {color}'] * len(row)
 
+        def _color_gap(val):
+            if val == 'ok':
+                return 'color: #2e7d32; font-weight: 700'
+            if isinstance(val, str) and val.startswith('-'):
+                return 'color: #c62828; font-weight: 700'
+            if isinstance(val, str) and val.startswith('+'):
+                return 'color: #e65100; font-weight: 700'
+            return ''
+
         styled = (
             display_peers.style
             .apply(_highlight_self, axis=1)
+            .map(_color_gap, subset=['GAP Banda'])
             .format(fmt_map)
         )
         st.dataframe(styled, use_container_width=True, hide_index=True)
@@ -736,48 +821,92 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
             f'<div class="section-header">Bandas {cross_label} — mismos levels</div>',
             unsafe_allow_html=True,
         )
-        cross_df = pd.DataFrame(cross_rows)
-        st.dataframe(
-            cross_df.style.format({'Mín': fmt_usd, 'Medio': fmt_usd, 'Máx': fmt_usd}),
-            use_container_width=True, hide_index=True,
-        )
+        for cr in cross_rows:
+            cross_card_html = f"""
+            <div class="summary-card" style="margin-top:6px;">
+              <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+                <span class="info-chip" style="font-size:0.85rem;padding:3px 12px;">
+                  <b>Code:</b> {cr['Code']}
+                </span>
+                <div><span style="font-size:0.72rem;color:var(--ms-text-light);text-transform:uppercase;
+                                  letter-spacing:0.05em;">Mínimo</span>
+                     <div style="font-size:1rem;font-weight:600;color:var(--ms-text);">
+                       {fmt_usd(cr['Mín'])}</div></div>
+                <div><span style="font-size:0.72rem;color:var(--ms-text-light);text-transform:uppercase;
+                                  letter-spacing:0.05em;">Medio</span>
+                     <div style="font-size:1rem;font-weight:600;color:var(--ms-text);">
+                       {fmt_usd(cr['Medio'])}</div></div>
+                <div><span style="font-size:0.72rem;color:var(--ms-text-light);text-transform:uppercase;
+                                  letter-spacing:0.05em;">Máximo</span>
+                     <div style="font-size:1rem;font-weight:600;color:var(--ms-text);">
+                       {fmt_usd(cr['Máx'])}</div></div>
+              </div>
+            </div>
+            """
+            st.markdown(cross_card_html, unsafe_allow_html=True)
 
     # ── Propuesta ─────────────────────────────────────────────────────────────
     st.markdown('<div class="section-header">Propuesta</div>', unsafe_allow_html=True)
 
     tipo_default = TIPOS_CASO.index(caso.get('tipo', TIPOS_CASO[0])) if is_edit and caso.get('tipo') in TIPOS_CASO else 0
-    tipo = st.selectbox('Tipo de resultado', TIPOS_CASO, index=tipo_default,
-                        disabled=is_closed, key='form_tipo')
 
+    all_codes = [''] + bandas_df['new_code'].tolist()
+    stored_tc = caso.get('target_code', '') if is_edit else ''
+
+    # Tipo + Nuevo code en la misma fila
+    col_tipo, col_code = st.columns(2)
+    with col_tipo:
+        tipo = st.selectbox('Tipo de resultado', TIPOS_CASO, index=tipo_default,
+                            disabled=is_closed, key='form_tipo')
     is_recat = 'Recat' in tipo
     has_ajuste = tipo not in ('Solo feedback', 'Recat sin ajuste')
 
-    # Target code for recat — siempre renderizar el selectbox para evitar
-    # que Streamlit pierda las claves de posición de los widgets que siguen
-    all_codes = [''] + bandas_df['new_code'].tolist()
-    stored_tc = caso.get('target_code', '') if is_edit else ''
     default_tc = stored_tc if stored_tc in all_codes else (next_code if next_code else '')
     default_idx = all_codes.index(default_tc) if default_tc in all_codes else 0
 
     target_code = ''
     target_banda = {'banda_min': None, 'banda_med': None, 'banda_max': None}
 
-    if is_recat:
-        target_code = st.selectbox(
-            'Nuevo code (recat target)', all_codes, index=default_idx,
-            disabled=is_closed, key='form_target_code',
-            help='Seleccioná el code al que se recategoriza al colaborador',
-        )
-        if target_code:
-            target_banda = get_banda_for_code(target_code, bandas_df)
-            bt1, bt2, bt3 = st.columns(3)
-            bt1.metric('Banda Mín (target)', fmt_usd(target_banda['banda_min']))
-            bt2.metric('Banda Med (target)', fmt_usd(target_banda['banda_med']))
-            bt3.metric('Banda Máx (target)', fmt_usd(target_banda['banda_max']))
+    with col_code:
+        if is_recat:
+            target_code = st.selectbox(
+                'Nuevo code', all_codes, index=default_idx,
+                disabled=is_closed, key='form_target_code',
+                help='Seleccioná el code al que se recategoriza al colaborador',
+            )
+
+    if is_recat and target_code:
+        target_banda = get_banda_for_code(target_code, bandas_df)
+        target_card_html = f"""
+        <div class="summary-card" style="margin-top:4px;margin-bottom:8px;">
+          <div style="font-size:0.8rem;font-weight:700;color:var(--ms-text-light);
+                      text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">
+            Banda nuevo code
+          </div>
+          <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+            <span class="info-chip" style="font-size:0.85rem;padding:3px 12px;">
+              <b>Code:</b> {target_code}
+            </span>
+            <div><span style="font-size:0.72rem;color:var(--ms-text-light);text-transform:uppercase;
+                              letter-spacing:0.05em;">Mínimo</span>
+                 <div style="font-size:1rem;font-weight:600;color:var(--ms-text);">
+                   {fmt_usd(target_banda['banda_min'])}</div></div>
+            <div><span style="font-size:0.72rem;color:var(--ms-text-light);text-transform:uppercase;
+                              letter-spacing:0.05em;">Medio</span>
+                 <div style="font-size:1rem;font-weight:600;color:var(--ms-text);">
+                   {fmt_usd(target_banda['banda_med'])}</div></div>
+            <div><span style="font-size:0.72rem;color:var(--ms-text-light);text-transform:uppercase;
+                              letter-spacing:0.05em;">Máximo</span>
+                 <div style="font-size:1rem;font-weight:600;color:var(--ms-text);">
+                   {fmt_usd(target_banda['banda_max'])}</div></div>
+          </div>
+        </div>
+        """
+        st.markdown(target_card_html, unsafe_allow_html=True)
 
     # Bill / PayRoll / new costo inputs
     if not is_closed and has_ajuste:
-        col_b, col_p = st.columns(2)
+        col_b, col_vb, col_p, col_vp = st.columns([3, 1, 3, 1])
         with col_b:
             prop_bill = st.number_input(
                 f'Nuevo Bill ({currency} / {per})',
@@ -794,16 +923,12 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
                 step=50.0, format='%.2f',
                 key='form_prop_payroll',
             )
-
-        # % variación propuesta vs actual
-        pct_items = [(l, c, p) for l, c, p in [
-            ('Bill', cur_bill, prop_bill), ('PayRoll', cur_payroll, prop_payroll)
-        ] if c]
-        if pct_items:
-            pct_cols = st.columns(len(pct_items))
-            for col_w, (label, cur_v, prop_v) in zip(pct_cols, pct_items):
-                pct = (prop_v - cur_v) / cur_v * 100
-                col_w.metric(f'Var. {label}', f'{pct:+.1f}%')
+        if cur_bill:
+            pct_bill = (prop_bill - cur_bill) / cur_bill * 100
+            col_vb.metric('Var. Bill', f'{pct_bill:+.1f}%')
+        if cur_payroll:
+            pct_pay = (prop_payroll - cur_payroll) / cur_payroll * 100
+            col_vp.metric('Var. PayRoll', f'{pct_pay:+.1f}%')
 
         new_costo = calc_costo_empresa(prop_bill, prop_payroll, per, agreement, currency, vars) or 0.0
 
@@ -811,19 +936,14 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
         prop_bill = float(caso.get('proposed_bill', 0) or 0)
         prop_payroll = float(caso.get('proposed_payroll', 0) or 0)
         new_costo = float(caso.get('new_costo', cur_costo) or cur_costo)
-        col_b, col_p, col_c = st.columns(3)
+        col_b, col_vb, col_p, col_vp, col_c = st.columns([3, 1, 3, 1, 2])
         col_b.metric('Nuevo Bill', fmt_usd(prop_bill))
         col_p.metric('Nuevo PayRoll', fmt_usd(prop_payroll))
         col_c.metric('Nuevo Costo USD/H', fmt_usd(new_costo))
-        # % variación (cerrado, solo lectura)
-        pct_items = [(l, c, p) for l, c, p in [
-            ('Bill', cur_bill, prop_bill), ('PayRoll', cur_payroll, prop_payroll)
-        ] if c]
-        if pct_items:
-            pct_cols = st.columns(len(pct_items))
-            for col_w, (label, cur_v, prop_v) in zip(pct_cols, pct_items):
-                pct = (prop_v - cur_v) / cur_v * 100
-                col_w.metric(f'Var. {label}', f'{pct:+.1f}%')
+        if cur_bill:
+            col_vb.metric('Var. Bill', f'{(prop_bill - cur_bill) / cur_bill * 100:+.1f}%')
+        if cur_payroll:
+            col_vp.metric('Var. PayRoll', f'{(prop_payroll - cur_payroll) / cur_payroll * 100:+.1f}%')
     else:
         prop_bill = cur_bill
         prop_payroll = cur_payroll
