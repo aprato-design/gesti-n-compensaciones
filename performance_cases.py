@@ -24,7 +24,7 @@ STATUS_OPEN = 'Abierto'
 STATUS_CLOSED = 'Cerrado'
 
 try:
-    READ_ONLY = bool(st.secrets.get('read_only', False))
+    READ_ONLY = bool(st.secrets['read_only'])
 except Exception:
     READ_ONLY = False
 
@@ -151,11 +151,18 @@ st.markdown("""
 }
 
 /* ── Primary button → MS green ─────────────────────────────────────────────── */
-[data-testid="stBaseButton-primary"] > div {
+[data-testid="stBaseButton-primary"],
+[data-testid="stBaseButton-primary"]:hover,
+[data-testid="stBaseButton-primary"]:focus,
+[data-testid="stBaseButton-primary"]:active,
+[data-testid="stBaseButton-primary"]:focus:not(:active) {
     background-color: var(--ms-green) !important;
     border-color: var(--ms-green) !important;
+    color: white !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
-[data-testid="stBaseButton-primary"]:hover > div {
+[data-testid="stBaseButton-primary"]:hover {
     background-color: var(--ms-green-dark) !important;
     border-color: var(--ms-green-dark) !important;
 }
