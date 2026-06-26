@@ -536,27 +536,29 @@ def generate_caso_pdf(caso: dict, empleados_df: pd.DataFrame, bandas_df: pd.Data
     W = 180  # usable page width
 
     def s(v):
-        return str(v or '—').encode('latin-1', errors='replace').decode('latin-1')
+        # Replace em/en dashes and any non-latin-1 chars before passing to fpdf
+        text = str(v or '-').replace('—', '-').replace('–', '-').replace('−', '-')
+        return text.encode('latin-1', errors='replace').decode('latin-1')
 
-    def fv(key, default='—'):
+    def fv(key, default='-'):
         val = caso.get(key, '')
         return s(val if val else default)
 
     def fu(val):
         try:
-            return fmt_usd(float(val or 0))
+            return s(fmt_usd(float(val or 0)))
         except Exception:
-            return '—'
+            return '-'
 
     def gap_s(c, mn, mx):
         try:
             c, mn, mx = float(c or 0), float(mn or 0), float(mx or 0)
-            if not mn or not mx: return '—'
+            if not mn or not mx: return '-'
             if mn <= c <= mx: return 'ok'
             if c < mn: return f"{(c - mn) / mn * 100:.1f}%"
             return f"+{(c - mx) / mx * 100:.1f}%"
         except Exception:
-            return '—'
+            return '-'
 
     # ── Recompute peers & cross bands ─────────────────────────────────────────
     new_code = caso.get('new_code_empleado', '')
@@ -746,7 +748,7 @@ def generate_caso_pdf(caso: dict, empleados_df: pd.DataFrame, bandas_df: pd.Data
             pdf.set_font('Helvetica', 'B' if is_self else '', 6.5)
             pdf.set_text_color(*DARK)
             pdf.set_x(15)
-            g_peer = str(pr.get('gap_banda', '—'))
+            g_peer = s(pr.get('gap_banda', '-'))
             row_data = [
                 (s(pr.get('name','')), 38, 'L'),
                 (s(pr.get('Nivel','')), 16, 'C'),
