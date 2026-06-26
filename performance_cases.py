@@ -519,160 +519,330 @@ def _safe(text):
     return str(text or '—').encode('latin-1', errors='replace').decode('latin-1')
 
 
-def generate_caso_pdf(caso: dict) -> bytes:
+def generate_caso_pdf(caso: dict, empleados_df: pd.DataFrame, bandas_df: pd.DataFrame) -> bytes:
     from fpdf import FPDF
 
-    MS_GREEN  = (51, 173, 115)
-    MS_DARK   = (15, 25, 35)
-    MS_GRAY   = (100, 116, 139)
-    MS_LGREEN = (232, 245, 233)
+    GREEN  = (51, 173, 115)
+    DARK   = (15, 25, 35)
+    GRAY   = (100, 116, 139)
+    LGREEN = (232, 245, 233)
+    LGRAY  = (248, 250, 252)
+    RED    = (198, 40, 40)
+    ORANGE = (230, 81, 0)
+    DGREEN = (46, 125, 50)
+    YELLOW_BG = (255, 249, 196)
+    PURPLE_BG = (243, 229, 245)
+
+    W = 180  # usable page width
+
+    def s(v):
+        return str(v or '—').encode('latin-1', errors='replace').decode('latin-1')
 
     def fv(key, default='—'):
         val = caso.get(key, '')
-        return _safe(val if val else default)
+        return s(val if val else default)
 
-    def fu(key):
+    def fu(val):
         try:
-            return fmt_usd(float(caso.get(key, 0) or 0))
+            return fmt_usd(float(val or 0))
         except Exception:
             return '—'
 
-    def gap(costo_val, bmin_val, bmax_val):
+    def gap_s(c, mn, mx):
         try:
-            c, mn, mx = float(costo_val or 0), float(bmin_val or 0), float(bmax_val or 0)
-            if not mn or not mx:
-                return '—'
-            if mn <= c <= mx:
-                return 'ok'
-            if c < mn:
-                return f"{(c - mn) / mn * 100:.1f}%"
+            c, mn, mx = float(c or 0), float(mn or 0), float(mx or 0)
+            if not mn or not mx: return '—'
+            if mn <= c <= mx: return 'ok'
+            if c < mn: return f"{(c - mn) / mn * 100:.1f}%"
             return f"+{(c - mx) / mx * 100:.1f}%"
         except Exception:
             return '—'
 
+    # ── Recompute peers & cross bands ─────────────────────────────────────────
+    new_code = caso.get('new_code_empleado', '')
+    agreement = caso.get('agreement', '')
+    cur_costo = float(caso.get('current_costo', 0) or 0)
+    banda_min = float(caso.get('banda_min', 0) or 0)
+    banda_med = float(caso.get('banda_med', 0) or 0)
+    banda_max = float(caso.get('banda_max', 0) or 0)
+
+    next_code = get_next_code(new_code, bandas_df)
+    mask = empleados_df['new_code'] == new_code
+    if next_code:
+        mask = mask | (empleados_df['new_code'] == next_code)
+    peers = empleados_df[mask].copy()
+    if not peers.empty:
+        peers['Nivel'] = peers['new_code'].apply(
+            lambda c: 'Siguiente' if c == next_code else 'Actual')
+        peers['gap_banda'] = peers.apply(
+            lambda r: gap_s(r['costo_usd_h'], r['banda_min'], r['banda_max']), axis=1)
+
+    cross_label = 'Costo USD/H (Empleado)' if agreement == 'Contractor' else 'Contractor'
+    cross_rows = []
+    for c in [cc for cc in [new_code, next_code] if cc]:
+        cb = get_cross_banda_for_code(c, agreement, bandas_df)
+        if cb.get('cross_code') and any(cb.get(k) for k in ('banda_min', 'banda_med', 'banda_max')):
+            cross_rows.append({
+                'Code': cb['cross_code'],
+                'Min': cb['banda_min'], 'Med': cb['banda_med'], 'Max': cb['banda_max'],
+            })
+
+    tipo = caso.get('tipo', '')
+    is_recat = 'Recat' in str(tipo)
+    has_ajuste = tipo not in ('Solo feedback', 'Recat sin ajuste')
+    target_code = caso.get('target_code', '')
+    tb_min = float(caso.get('target_banda_min', 0) or 0)
+    tb_med = float(caso.get('target_banda_med', 0) or 0)
+    tb_max = float(caso.get('target_banda_max', 0) or 0)
+    prop_bill = float(caso.get('proposed_bill', 0) or 0)
+    prop_payroll = float(caso.get('proposed_payroll', 0) or 0)
+    new_costo = float(caso.get('new_costo', 0) or 0)
+    differential = float(caso.get('differential', 0) or 0)
+    emp_name = caso.get('employee_name', '')
+
+    # ── Build PDF ─────────────────────────────────────────────────────────────
     pdf = FPDF()
     pdf.set_margins(15, 15, 15)
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
-    # ── Header bar ────────────────────────────────────────────────────────────
-    pdf.set_fill_color(*MS_GREEN)
+    # Header bar
+    pdf.set_fill_color(*GREEN)
     pdf.rect(0, 0, 210, 16, 'F')
     pdf.set_font('Helvetica', 'B', 11)
     pdf.set_text_color(255, 255, 255)
     pdf.set_xy(15, 3)
     pdf.cell(0, 10, 'GESTION COMPENSACIONES  -  Making Sense', ln=True)
 
-    # ── Titulo ────────────────────────────────────────────────────────────────
+    # Title
     pdf.set_xy(15, 20)
-    pdf.set_text_color(*MS_DARK)
+    pdf.set_text_color(*DARK)
     pdf.set_font('Helvetica', 'B', 15)
-    pdf.cell(0, 8, fv('employee_name'), ln=True)
-
+    pdf.cell(0, 8, s(emp_name), ln=True)
     pdf.set_font('Helvetica', '', 8)
-    pdf.set_text_color(*MS_GRAY)
-    status    = fv('status', 'Abierto')
-    creator   = fv('created_by')
-    created   = fv('created_at')
-    case_id   = fv('id')
-    pdf.cell(0, 5, f"ID: {case_id}   |   Estado: {status}   |   Creado por: {creator}   |   Fecha: {created}", ln=True)
+    pdf.set_text_color(*GREEN)
+    pdf.cell(0, 5, fv('employee_email'), ln=True)
+    pdf.set_text_color(*GRAY)
+    pdf.cell(0, 5, f"Estado: {fv('status','Abierto')}   |   Creado por: {fv('created_by')}   |   Fecha: {fv('created_at')}   |   ID: {fv('id')}", ln=True)
     pdf.ln(4)
 
-    # Section / row helpers ───────────────────────────────────────────────────
+    # ── Helpers ───────────────────────────────────────────────────────────────
     def sec(title):
-        pdf.set_fill_color(*MS_LGREEN)
-        pdf.set_text_color(*MS_GREEN)
+        pdf.set_x(15)
+        pdf.set_fill_color(*LGREEN)
+        pdf.set_text_color(*GREEN)
         pdf.set_font('Helvetica', 'B', 8)
-        pdf.cell(0, 6, _safe(title).upper(), ln=True, fill=True)
-        pdf.set_text_color(*MS_DARK)
+        pdf.cell(W, 6, s(title).upper(), ln=True, fill=True)
+        pdf.set_text_color(*DARK)
         pdf.ln(1)
 
-    def lbl(text):
+    def row1(label, value, lw=42):
+        pdf.set_x(15)
         pdf.set_font('Helvetica', 'B', 8)
-        pdf.set_text_color(*MS_GRAY)
-        pdf.cell(45, 5, _safe(text))
+        pdf.set_text_color(*GRAY)
+        pdf.cell(lw, 5, s(label))
         pdf.set_font('Helvetica', '', 9)
-        pdf.set_text_color(*MS_DARK)
+        pdf.set_text_color(*DARK)
+        pdf.cell(W - lw, 5, s(value), ln=True)
 
-    def row1(label, value):
-        lbl(label)
-        pdf.cell(0, 5, _safe(value), ln=True)
-
-    def row2(pairs):
-        col_w = 90
+    def row2(pairs, lw=38):
+        col_w = W / 2
+        pdf.set_x(15)
         x0, y0 = pdf.get_x(), pdf.get_y()
         for i, (label, value) in enumerate(pairs):
-            pdf.set_xy(x0 + i * col_w, y0)
-            lbl(label)
-            pdf.cell(col_w - 45, 5, _safe(value))
+            pdf.set_xy(15 + i * col_w, y0)
+            pdf.set_font('Helvetica', 'B', 8)
+            pdf.set_text_color(*GRAY)
+            pdf.cell(lw, 5, s(label))
+            pdf.set_font('Helvetica', '', 9)
+            pdf.set_text_color(*DARK)
+            pdf.cell(col_w - lw, 5, s(value))
         pdf.ln(5)
 
-    def divider():
-        pdf.set_draw_color(226, 232, 240)
-        pdf.line(15, pdf.get_y(), 195, pdf.get_y())
-        pdf.ln(3)
+    def gap_color(g):
+        if g == 'ok': return DGREEN
+        if isinstance(g, str) and g.startswith('-'): return RED
+        if isinstance(g, str) and g.startswith('+'): return ORANGE
+        return GRAY
+
+    def draw_band_bar(costo, bmin, bmed, bmax, bar_w=None):
+        if not bmin or not bmax or bmax <= bmin:
+            return
+        if bar_w is None:
+            bar_w = W
+        pdf.set_x(15)
+        x, y = pdf.get_x(), pdf.get_y()
+        h = 5
+        pdf.set_fill_color(220, 220, 220)
+        pdf.rect(x, y, bar_w, h, 'F')
+        if bmed:
+            mp = (bmed - bmin) / (bmax - bmin)
+            pdf.set_draw_color(180, 180, 180)
+            pdf.line(x + mp * bar_w, y - 1, x + mp * bar_w, y + h + 1)
+        dp = max(-0.06, min(1.06, (costo - bmin) / (bmax - bmin)))
+        dot_x = x + dp * bar_w
+        dot_y = y + h / 2
+        r = 3.5
+        if bmin <= costo <= bmax:
+            pdf.set_fill_color(*DGREEN)
+        elif costo < bmin:
+            pdf.set_fill_color(*RED)
+        else:
+            pdf.set_fill_color(*ORANGE)
+        pdf.ellipse(dot_x - r, dot_y - r, r * 2, r * 2, 'F')
+        pdf.set_font('Helvetica', '', 6)
+        pdf.set_text_color(*GRAY)
+        pdf.set_xy(x, y + h + 1)
+        pdf.cell(bar_w / 3, 4, fu(bmin), align='L')
+        pdf.set_xy(x + bar_w / 3, y + h + 1)
+        pdf.cell(bar_w / 3, 4, fu(bmed) if bmed else '', align='C')
+        pdf.set_xy(x + 2 * bar_w / 3, y + h + 1)
+        pdf.cell(bar_w / 3, 4, fu(bmax), align='R')
+        pdf.ln(11)
 
     # ── COLABORADOR ───────────────────────────────────────────────────────────
     sec('Colaborador')
-    row1('Email', fv('employee_email'))
     row2([('Code', fv('code')), ('Seniority', fv('seniority'))])
     row2([('Agreement', fv('agreement')), ('Moneda / Per', f"{fv('currency')} / {fv('per')}")])
     row2([('xM', fv('xm')), ('Hire Date', fv('hire_date'))])
     pdf.ln(1)
-    row2([('Bill actual', fu('current_bill')), ('PayRoll actual', fu('current_payroll'))])
-    row1('Costo USD/H actual', fu('current_costo'))
+    row2([('Bill actual', fu(caso.get('current_bill'))), ('PayRoll actual', fu(caso.get('current_payroll')))])
+    row1('Costo USD/H actual', fu(caso.get('current_costo')))
     pdf.ln(3)
 
     # ── BANDA ACTUAL ──────────────────────────────────────────────────────────
     sec('Banda actual')
-    bmin = caso.get('banda_min', 0)
-    bmed = caso.get('banda_med', 0)
-    bmax = caso.get('banda_max', 0)
-    row1('Code', fv('new_code_empleado'))
-    row2([('Minimo', fu('banda_min')), ('Medio', fu('banda_med'))])
-    row2([('Maximo', fu('banda_max')), ('GAP Banda', gap(caso.get('current_costo', 0), bmin, bmax))])
-    pdf.ln(3)
+    g = gap_s(cur_costo, banda_min, banda_max)
+    row2([('Code', fv('new_code_empleado')), ('GAP Banda', g)])
+    row2([('Minimo', fu(banda_min)), ('Medio', fu(banda_med))])
+    row1('Maximo', fu(banda_max))
+    pdf.ln(2)
+    draw_band_bar(cur_costo, banda_min, banda_med, banda_max)
+    pdf.ln(2)
 
-    # ── PROPUESTA ─────────────────────────────────────────────────────────────
+    # ── PARES ─────────────────────────────────────────────────────────────────
+    if not peers.empty:
+        sec(f'Pares - mismo code y siguiente nivel')
+        COL = [('Nombre',38),('Nivel',16),('Code',16),('Bill',17),
+               ('PayRoll',17),('Costo USD/H',21),('GAP',13),
+               ('Bda Min',15),('Bda Med',15),('Bda Max',12)]
+        # Header row
+        pdf.set_x(15)
+        pdf.set_font('Helvetica', 'B', 6.5)
+        pdf.set_text_color(*GRAY)
+        pdf.set_fill_color(*LGRAY)
+        for col_name, cw in COL:
+            pdf.cell(cw, 6, col_name, border=1, fill=True, align='C')
+        pdf.ln()
+        for _, pr in peers.iterrows():
+            is_self = str(pr.get('name', '')) == emp_name
+            is_next = str(pr.get('Nivel', '')) == 'Siguiente'
+            if is_self:
+                pdf.set_fill_color(*YELLOW_BG)
+            elif is_next:
+                pdf.set_fill_color(*PURPLE_BG)
+            else:
+                pdf.set_fill_color(255, 255, 255)
+            pdf.set_font('Helvetica', 'B' if is_self else '', 6.5)
+            pdf.set_text_color(*DARK)
+            pdf.set_x(15)
+            g_peer = str(pr.get('gap_banda', '—'))
+            row_data = [
+                (s(pr.get('name','')), 38, 'L'),
+                (s(pr.get('Nivel','')), 16, 'C'),
+                (s(pr.get('new_code','')), 16, 'C'),
+                (fu(pr.get('bill',0)), 17, 'R'),
+                (fu(pr.get('payroll',0)), 17, 'R'),
+                (fu(pr.get('costo_usd_h',0)), 21, 'R'),
+                (g_peer, 13, 'C'),
+                (fu(pr.get('banda_min',0)), 15, 'R'),
+                (fu(pr.get('banda_med',0)), 15, 'R'),
+                (fu(pr.get('banda_max',0)), 12, 'R'),
+            ]
+            for val, cw, align in row_data:
+                pdf.cell(cw, 6, val, border=1, fill=True, align=align)
+            pdf.ln()
+        pdf.ln(4)
+
+    # ── BANDAS CROSS ──────────────────────────────────────────────────────────
+    if cross_rows:
+        sec(f'Bandas {cross_label} - mismos levels')
+        for cr in cross_rows:
+            g_cr = gap_s(cur_costo, cr['Min'], cr['Max'])
+            row2([('Code', s(cr['Code'])), ('GAP Banda', g_cr)])
+            row2([('Minimo', fu(cr['Min'])), ('Medio', fu(cr['Med']))])
+            row1('Maximo', fu(cr['Max']))
+            pdf.ln(2)
+        pdf.ln(2)
+
+    # ── PROPUESTA ────────────────────────────────────────────────────────────
     sec('Propuesta')
-    tipo = caso.get('tipo', '')
     row1('Tipo', fv('tipo'))
-
-    if 'Recat' in str(tipo):
+    if is_recat and target_code:
         row1('Nuevo code', fv('target_code'))
-        row2([('Banda Min (target)', fmt_usd(float(caso.get('target_banda_min', 0) or 0))),
-              ('Banda Med (target)', fmt_usd(float(caso.get('target_banda_med', 0) or 0)))])
-        row1('Banda Max (target)', fmt_usd(float(caso.get('target_banda_max', 0) or 0)))
+        row2([('Banda Min (target)', fu(tb_min)), ('Banda Med (target)', fu(tb_med))])
+        row1('Banda Max (target)', fu(tb_max))
         pdf.ln(1)
-
-    if tipo not in ('Solo feedback', 'Recat sin ajuste'):
-        pb = float(caso.get('proposed_bill', 0) or 0)
-        pp = float(caso.get('proposed_payroll', 0) or 0)
+    if has_ajuste:
         cb = float(caso.get('current_bill', 0) or 0)
         cp = float(caso.get('current_payroll', 0) or 0)
-        var_b = f"{(pb - cb) / cb * 100:+.1f}%" if cb else '—'
-        var_p = f"{(pp - cp) / cp * 100:+.1f}%" if cp else '—'
-        row2([('Nuevo Bill', fmt_usd(pb)), ('Var. Bill', var_b)])
-        row2([('Nuevo PayRoll', fmt_usd(pp)), ('Var. PayRoll', var_p)])
+        var_b = f"{(prop_bill - cb) / cb * 100:+.1f}%" if cb else '—'
+        var_p = f"{(prop_payroll - cp) / cp * 100:+.1f}%" if cp else '—'
+        row2([(f"Nuevo Bill ({fv('currency')}/{fv('per')})", fu(prop_bill)), ('Var. Bill', var_b)])
+        row2([('Nuevo PayRoll', fu(prop_payroll)), ('Var. PayRoll', var_p)])
         pdf.ln(1)
-
-    row1('Nuevo Costo USD/H', fu('new_costo'))
-    diff = float(caso.get('differential', 0) or 0)
-    sign = '+' if diff >= 0 else ''
-    row1('Diferencial USD/H', f'{sign}{diff:.4f}')
-    row1('Impacto mensual (x168)', fmt_usd(diff * HORAS, zero_dash=False))
+    row1('Nuevo Costo USD/H', fu(new_costo))
+    sign = '+' if differential >= 0 else ''
+    row1('Diferencial USD/H', f'{sign}{differential:.4f}')
+    row1('Impacto mensual (x168)', fmt_usd(differential * HORAS, zero_dash=False))
     pdf.ln(3)
 
-    # ── NOTAS ─────────────────────────────────────────────────────────────────
+    # ── POSICION EN BANDA ─────────────────────────────────────────────────────
+    if banda_min or banda_max:
+        sec('Posicion en banda')
+        # Label + gap badge for Actual
+        pdf.set_x(15)
+        pdf.set_font('Helvetica', 'B', 8)
+        pdf.set_text_color(*DARK)
+        pdf.cell(22, 5, 'Actual:')
+        g_actual = gap_s(cur_costo, banda_min, banda_max)
+        pdf.set_text_color(*gap_color(g_actual))
+        pdf.cell(18, 5, s(g_actual))
+        pdf.set_text_color(*GRAY)
+        pdf.set_font('Helvetica', '', 8)
+        pdf.cell(0, 5, fu(cur_costo), ln=True)
+        pdf.ln(1)
+        draw_band_bar(cur_costo, banda_min, banda_med, banda_max)
+
+        if has_ajuste:
+            prop_bmin = tb_min if (is_recat and target_code and tb_min) else banda_min
+            prop_bmed = tb_med if (is_recat and target_code and tb_min) else banda_med
+            prop_bmax = tb_max if (is_recat and target_code and tb_min) else banda_max
+            pdf.set_x(15)
+            pdf.set_font('Helvetica', 'B', 8)
+            pdf.set_text_color(*DARK)
+            pdf.cell(22, 5, 'Propuesta:')
+            g_prop = gap_s(new_costo, prop_bmin, prop_bmax)
+            pdf.set_text_color(*gap_color(g_prop))
+            pdf.cell(18, 5, s(g_prop))
+            pdf.set_text_color(*GRAY)
+            pdf.set_font('Helvetica', '', 8)
+            pdf.cell(0, 5, fu(new_costo), ln=True)
+            pdf.ln(1)
+            draw_band_bar(new_costo, prop_bmin, prop_bmed, prop_bmax)
+        pdf.ln(1)
+
+    # ── NOTAS ────────────────────────────────────────────────────────────────
     notes = caso.get('notes', '')
     if notes:
         sec('Notas')
+        pdf.set_x(15)
         pdf.set_font('Helvetica', '', 9)
-        pdf.set_text_color(*MS_DARK)
-        pdf.multi_cell(0, 5, _safe(notes))
+        pdf.set_text_color(*DARK)
+        pdf.multi_cell(W, 5, s(notes))
         pdf.ln(3)
 
-    # ── CIERRE ────────────────────────────────────────────────────────────────
+    # ── CIERRE ───────────────────────────────────────────────────────────────
     if caso.get('status') == STATUS_CLOSED:
         sec('Cierre')
         row1('Cerrado por', fv('closed_by'))
@@ -773,7 +943,7 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
     if is_edit:
         with col_pdf:
             try:
-                pdf_bytes = generate_caso_pdf(caso)
+                pdf_bytes = generate_caso_pdf(caso, empleados_df, bandas_df)
                 emp_slug = caso.get('employee_name', 'caso').replace(' ', '_').replace(',', '')
                 st.download_button(
                     label='⬇ PDF',
