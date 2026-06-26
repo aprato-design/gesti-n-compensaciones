@@ -934,22 +934,7 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
     back_view = 'closed_list' if actually_closed else 'open_list'
     heading = '📋 Ver caso' if is_closed else ('✏️ Editar caso' if is_edit else '➕ Nuevo caso')
 
-    col_h, col_pdf = st.columns([5, 1])
-    col_h.markdown(f'### {heading}')
-    if is_edit:
-        with col_pdf:
-            try:
-                pdf_bytes = generate_caso_pdf(caso, empleados_df, bandas_df)
-                emp_slug = caso.get('employee_name', 'caso').replace(' ', '_').replace(',', '')
-                st.download_button(
-                    label='⬇ PDF',
-                    data=pdf_bytes,
-                    file_name=f"caso_{emp_slug}.pdf",
-                    mime='application/pdf',
-                    use_container_width=True,
-                )
-            except Exception as e:
-                st.caption(f'PDF: {e}')
+    st.markdown(f'### {heading}')
 
     vars = load_variables()
 
@@ -1396,6 +1381,20 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
         if st.button('← Volver', use_container_width=False):
             st.session_state.view = 'open_list'
             st.rerun()
+
+    if is_edit:
+        try:
+            caso_con_notes = {**caso, 'notes': notes}
+            pdf_bytes = generate_caso_pdf(caso_con_notes, empleados_df, bandas_df)
+            emp_slug = (caso.get('employee_name', 'caso') or 'caso').replace(' ', '_').replace(',', '')
+            st.download_button(
+                label='⬇ Descargar PDF',
+                data=pdf_bytes,
+                file_name=f"caso_{emp_slug}.pdf",
+                mime='application/pdf',
+            )
+        except Exception as e:
+            st.caption(f'PDF: {e}')
 
 
 def _save_caso(is_edit, caso, emp_email, emp_name, code, seniority,
