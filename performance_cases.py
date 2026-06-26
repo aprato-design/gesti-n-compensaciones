@@ -444,6 +444,16 @@ def close_caso_sheet(caso_id: str, closed_by: str):
             return
 
 
+def delete_caso(caso_id: str):
+    ws = _get_casos_ws()
+    all_vals = ws.get_all_values()
+    for i, row in enumerate(all_vals[1:], start=2):
+        if row[0] == caso_id:
+            ws.delete_rows(i)
+            st.cache_data.clear()
+            return
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def get_next_code(new_code: str, bandas_df: pd.DataFrame):
@@ -1328,10 +1338,12 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
             rb2.metric('Bruto propuesto', f'${bruto_prop:,.0f} ARS')
             rb3.metric('Var. Bruto Total', f'{pct_bruto:+.1f}%')
 
-    # Notes
-    notes_val = caso.get('notes', '') if is_edit else ''
-    notes = st.text_area('Notas / Comentarios', value=notes_val,
-                         disabled=is_closed, height=80, key='form_notes')
+    # Notes — key por caso para evitar que reruns internos reseteen lo escrito
+    notes_key = f'notes_{caso["id"]}' if is_edit else 'notes_new'
+    if notes_key not in st.session_state:
+        st.session_state[notes_key] = caso.get('notes', '') if is_edit else ''
+    notes = st.text_area('Notas / Comentarios', key=notes_key,
+                         disabled=is_closed, height=80)
 
     # ── Actions ───────────────────────────────────────────────────────────────
     if is_closed:
@@ -1362,7 +1374,7 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
         placeholder='tu@makingsense.com', key='form_user_email',
     )
 
-    col_save, col_close, col_cancel = st.columns([1, 1, 3])
+    col_save, col_close, col_cancel, col_del = st.columns([1, 1, 1, 1])
 
     with col_save:
         if st.button('💾 Guardar', type='primary', use_container_width=True):
@@ -1392,9 +1404,26 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
                     st.rerun()
 
     with col_cancel:
-        if st.button('← Volver', use_container_width=False):
+        if st.button('← Volver', use_container_width=True):
             st.session_state.view = 'open_list'
             st.rerun()
+
+    with col_del:
+        if is_edit:
+            if st.button('🗑 Eliminar', use_container_width=True):
+                st.session_state['confirm_delete'] = True
+            if st.session_state.get('confirm_delete'):
+                st.warning('¿Confirmás que querés eliminar este caso?')
+                c1, c2 = st.columns(2)
+                if c1.button('Sí, eliminar', type='primary'):
+                    with st.spinner('Eliminando...'):
+                        delete_caso(caso['id'])
+                    st.session_state.pop('confirm_delete', None)
+                    st.session_state.view = 'open_list'
+                    st.rerun()
+                if c2.button('Cancelar'):
+                    st.session_state.pop('confirm_delete', None)
+                    st.rerun()
 
     if is_edit:
         try:
