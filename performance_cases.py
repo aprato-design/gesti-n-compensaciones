@@ -667,24 +667,22 @@ def generate_caso_pdf(caso: dict, empleados_df: pd.DataFrame, bandas_df: pd.Data
         if isinstance(g, str) and g.startswith('+'): return ORANGE
         return GRAY
 
-    def draw_band_bar(costo, bmin, bmed, bmax, bar_w=None):
+    def draw_band_bar(costo, bmin, bmed, bmax, bar_w=120):
         if not bmin or not bmax or bmax <= bmin:
             return
-        if bar_w is None:
-            bar_w = W
         pdf.set_x(15)
         x, y = pdf.get_x(), pdf.get_y()
-        h = 5
+        h = 3
         pdf.set_fill_color(220, 220, 220)
         pdf.rect(x, y, bar_w, h, 'F')
         if bmed:
             mp = (bmed - bmin) / (bmax - bmin)
             pdf.set_draw_color(180, 180, 180)
-            pdf.line(x + mp * bar_w, y - 1, x + mp * bar_w, y + h + 1)
+            pdf.line(x + mp * bar_w, y - 0.5, x + mp * bar_w, y + h + 0.5)
         dp = max(-0.06, min(1.06, (costo - bmin) / (bmax - bmin)))
         dot_x = x + dp * bar_w
         dot_y = y + h / 2
-        r = 3.5
+        r = 2.5
         if bmin <= costo <= bmax:
             pdf.set_fill_color(*DGREEN)
         elif costo < bmin:
@@ -694,13 +692,13 @@ def generate_caso_pdf(caso: dict, empleados_df: pd.DataFrame, bandas_df: pd.Data
         pdf.ellipse(dot_x - r, dot_y - r, r * 2, r * 2, 'F')
         pdf.set_font('Helvetica', '', 6)
         pdf.set_text_color(*GRAY)
-        pdf.set_xy(x, y + h + 1)
-        pdf.cell(bar_w / 3, 4, fu(bmin), align='L')
-        pdf.set_xy(x + bar_w / 3, y + h + 1)
-        pdf.cell(bar_w / 3, 4, fu(bmed) if bmed else '', align='C')
-        pdf.set_xy(x + 2 * bar_w / 3, y + h + 1)
-        pdf.cell(bar_w / 3, 4, fu(bmax), align='R')
-        pdf.ln(11)
+        pdf.set_xy(x, y + h + 0.5)
+        pdf.cell(bar_w / 3, 3, fu(bmin), align='L')
+        pdf.set_xy(x + bar_w / 3, y + h + 0.5)
+        pdf.cell(bar_w / 3, 3, fu(bmed) if bmed else '', align='C')
+        pdf.set_xy(x + 2 * bar_w / 3, y + h + 0.5)
+        pdf.cell(bar_w / 3, 3, fu(bmax), align='R')
+        pdf.ln(8)
 
     # ── COLABORADOR ───────────────────────────────────────────────────────────
     sec('Colaborador')
@@ -718,9 +716,8 @@ def generate_caso_pdf(caso: dict, empleados_df: pd.DataFrame, bandas_df: pd.Data
     row2([('Code', fv('new_code_empleado')), ('GAP Banda', g)])
     row2([('Minimo', fu(banda_min)), ('Medio', fu(banda_med))])
     row1('Maximo', fu(banda_max))
-    pdf.ln(2)
+    pdf.ln(1)
     draw_band_bar(cur_costo, banda_min, banda_med, banda_max)
-    pdf.ln(2)
 
     # ── PARES ─────────────────────────────────────────────────────────────────
     if not peers.empty:
@@ -813,7 +810,6 @@ def generate_caso_pdf(caso: dict, empleados_df: pd.DataFrame, bandas_df: pd.Data
         pdf.set_text_color(*GRAY)
         pdf.set_font('Helvetica', '', 8)
         pdf.cell(0, 5, fu(cur_costo), ln=True)
-        pdf.ln(1)
         draw_band_bar(cur_costo, banda_min, banda_med, banda_max)
 
         if has_ajuste:
@@ -830,9 +826,7 @@ def generate_caso_pdf(caso: dict, empleados_df: pd.DataFrame, bandas_df: pd.Data
             pdf.set_text_color(*GRAY)
             pdf.set_font('Helvetica', '', 8)
             pdf.cell(0, 5, fu(new_costo), ln=True)
-            pdf.ln(1)
             draw_band_bar(new_costo, prop_bmin, prop_bmed, prop_bmax)
-        pdf.ln(1)
 
     # ── NOTAS ────────────────────────────────────────────────────────────────
     notes = caso.get('notes', '')
