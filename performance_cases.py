@@ -514,6 +514,173 @@ def calc_costo_empresa(bill: float, payroll: float, per: str,
     return None
 
 
+def _safe(text):
+    """Encode text for fpdf core fonts (latin-1)."""
+    return str(text or '—').encode('latin-1', errors='replace').decode('latin-1')
+
+
+def generate_caso_pdf(caso: dict) -> bytes:
+    from fpdf import FPDF
+
+    MS_GREEN  = (51, 173, 115)
+    MS_DARK   = (15, 25, 35)
+    MS_GRAY   = (100, 116, 139)
+    MS_LGREEN = (232, 245, 233)
+
+    def fv(key, default='—'):
+        val = caso.get(key, '')
+        return _safe(val if val else default)
+
+    def fu(key):
+        try:
+            return fmt_usd(float(caso.get(key, 0) or 0))
+        except Exception:
+            return '—'
+
+    def gap(costo_val, bmin_val, bmax_val):
+        try:
+            c, mn, mx = float(costo_val or 0), float(bmin_val or 0), float(bmax_val or 0)
+            if not mn or not mx:
+                return '—'
+            if mn <= c <= mx:
+                return 'ok'
+            if c < mn:
+                return f"{(c - mn) / mn * 100:.1f}%"
+            return f"+{(c - mx) / mx * 100:.1f}%"
+        except Exception:
+            return '—'
+
+    pdf = FPDF()
+    pdf.set_margins(15, 15, 15)
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+
+    # ── Header bar ────────────────────────────────────────────────────────────
+    pdf.set_fill_color(*MS_GREEN)
+    pdf.rect(0, 0, 210, 16, 'F')
+    pdf.set_font('Helvetica', 'B', 11)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_xy(15, 3)
+    pdf.cell(0, 10, 'GESTION COMPENSACIONES  -  Making Sense', ln=True)
+
+    # ── Titulo ────────────────────────────────────────────────────────────────
+    pdf.set_xy(15, 20)
+    pdf.set_text_color(*MS_DARK)
+    pdf.set_font('Helvetica', 'B', 15)
+    pdf.cell(0, 8, fv('employee_name'), ln=True)
+
+    pdf.set_font('Helvetica', '', 8)
+    pdf.set_text_color(*MS_GRAY)
+    status    = fv('status', 'Abierto')
+    creator   = fv('created_by')
+    created   = fv('created_at')
+    case_id   = fv('id')
+    pdf.cell(0, 5, f"ID: {case_id}   |   Estado: {status}   |   Creado por: {creator}   |   Fecha: {created}", ln=True)
+    pdf.ln(4)
+
+    # Section / row helpers ───────────────────────────────────────────────────
+    def sec(title):
+        pdf.set_fill_color(*MS_LGREEN)
+        pdf.set_text_color(*MS_GREEN)
+        pdf.set_font('Helvetica', 'B', 8)
+        pdf.cell(0, 6, _safe(title).upper(), ln=True, fill=True)
+        pdf.set_text_color(*MS_DARK)
+        pdf.ln(1)
+
+    def lbl(text):
+        pdf.set_font('Helvetica', 'B', 8)
+        pdf.set_text_color(*MS_GRAY)
+        pdf.cell(45, 5, _safe(text))
+        pdf.set_font('Helvetica', '', 9)
+        pdf.set_text_color(*MS_DARK)
+
+    def row1(label, value):
+        lbl(label)
+        pdf.cell(0, 5, _safe(value), ln=True)
+
+    def row2(pairs):
+        col_w = 90
+        x0, y0 = pdf.get_x(), pdf.get_y()
+        for i, (label, value) in enumerate(pairs):
+            pdf.set_xy(x0 + i * col_w, y0)
+            lbl(label)
+            pdf.cell(col_w - 45, 5, _safe(value))
+        pdf.ln(5)
+
+    def divider():
+        pdf.set_draw_color(226, 232, 240)
+        pdf.line(15, pdf.get_y(), 195, pdf.get_y())
+        pdf.ln(3)
+
+    # ── COLABORADOR ───────────────────────────────────────────────────────────
+    sec('Colaborador')
+    row1('Email', fv('employee_email'))
+    row2([('Code', fv('code')), ('Seniority', fv('seniority'))])
+    row2([('Agreement', fv('agreement')), ('Moneda / Per', f"{fv('currency')} / {fv('per')}")])
+    row2([('xM', fv('xm')), ('Hire Date', fv('hire_date'))])
+    pdf.ln(1)
+    row2([('Bill actual', fu('current_bill')), ('PayRoll actual', fu('current_payroll'))])
+    row1('Costo USD/H actual', fu('current_costo'))
+    pdf.ln(3)
+
+    # ── BANDA ACTUAL ──────────────────────────────────────────────────────────
+    sec('Banda actual')
+    bmin = caso.get('banda_min', 0)
+    bmed = caso.get('banda_med', 0)
+    bmax = caso.get('banda_max', 0)
+    row1('Code', fv('new_code_empleado'))
+    row2([('Minimo', fu('banda_min')), ('Medio', fu('banda_med'))])
+    row2([('Maximo', fu('banda_max')), ('GAP Banda', gap(caso.get('current_costo', 0), bmin, bmax))])
+    pdf.ln(3)
+
+    # ── PROPUESTA ─────────────────────────────────────────────────────────────
+    sec('Propuesta')
+    tipo = caso.get('tipo', '')
+    row1('Tipo', fv('tipo'))
+
+    if 'Recat' in str(tipo):
+        row1('Nuevo code', fv('target_code'))
+        row2([('Banda Min (target)', fmt_usd(float(caso.get('target_banda_min', 0) or 0))),
+              ('Banda Med (target)', fmt_usd(float(caso.get('target_banda_med', 0) or 0)))])
+        row1('Banda Max (target)', fmt_usd(float(caso.get('target_banda_max', 0) or 0)))
+        pdf.ln(1)
+
+    if tipo not in ('Solo feedback', 'Recat sin ajuste'):
+        pb = float(caso.get('proposed_bill', 0) or 0)
+        pp = float(caso.get('proposed_payroll', 0) or 0)
+        cb = float(caso.get('current_bill', 0) or 0)
+        cp = float(caso.get('current_payroll', 0) or 0)
+        var_b = f"{(pb - cb) / cb * 100:+.1f}%" if cb else '—'
+        var_p = f"{(pp - cp) / cp * 100:+.1f}%" if cp else '—'
+        row2([('Nuevo Bill', fmt_usd(pb)), ('Var. Bill', var_b)])
+        row2([('Nuevo PayRoll', fmt_usd(pp)), ('Var. PayRoll', var_p)])
+        pdf.ln(1)
+
+    row1('Nuevo Costo USD/H', fu('new_costo'))
+    diff = float(caso.get('differential', 0) or 0)
+    sign = '+' if diff >= 0 else ''
+    row1('Diferencial USD/H', f'{sign}{diff:.4f}')
+    row1('Impacto mensual (x168)', fmt_usd(diff * HORAS, zero_dash=False))
+    pdf.ln(3)
+
+    # ── NOTAS ─────────────────────────────────────────────────────────────────
+    notes = caso.get('notes', '')
+    if notes:
+        sec('Notas')
+        pdf.set_font('Helvetica', '', 9)
+        pdf.set_text_color(*MS_DARK)
+        pdf.multi_cell(0, 5, _safe(notes))
+        pdf.ln(3)
+
+    # ── CIERRE ────────────────────────────────────────────────────────────────
+    if caso.get('status') == STATUS_CLOSED:
+        sec('Cierre')
+        row1('Cerrado por', fv('closed_by'))
+        row1('Fecha cierre', fv('closed_at'))
+
+    return bytes(pdf.output())
+
+
 def _banda_position_html(label: str, costo: float, bmin: float, bmed: float, bmax: float) -> str:
     """Return HTML showing band position as a visual bar + ok/% indicator (column AC format)."""
     if not bmin or not bmax:
@@ -601,7 +768,22 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
     back_view = 'closed_list' if actually_closed else 'open_list'
     heading = '📋 Ver caso' if is_closed else ('✏️ Editar caso' if is_edit else '➕ Nuevo caso')
 
-    st.markdown(f'### {heading}')
+    col_h, col_pdf = st.columns([5, 1])
+    col_h.markdown(f'### {heading}')
+    if is_edit:
+        with col_pdf:
+            try:
+                pdf_bytes = generate_caso_pdf(caso)
+                emp_slug = caso.get('employee_name', 'caso').replace(' ', '_').replace(',', '')
+                st.download_button(
+                    label='⬇ PDF',
+                    data=pdf_bytes,
+                    file_name=f"caso_{emp_slug}.pdf",
+                    mime='application/pdf',
+                    use_container_width=True,
+                )
+            except Exception as e:
+                st.caption(f'PDF: {e}')
 
     vars = load_variables()
 
