@@ -1335,9 +1335,23 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
 
     # ── Actions ───────────────────────────────────────────────────────────────
     if is_closed:
-        if st.button('← Volver'):
-            st.session_state.view = back_view
-            st.rerun()
+        col_back, col_pdf_cl = st.columns([3, 1])
+        with col_back:
+            if st.button('← Volver'):
+                st.session_state.view = back_view
+                st.rerun()
+        with col_pdf_cl:
+            if is_edit:
+                try:
+                    caso_cn = {**caso, 'notes': notes}
+                    pdf_bytes = generate_caso_pdf(caso_cn, empleados_df, bandas_df)
+                    emp_slug = (caso.get('employee_name', 'caso') or 'caso').replace(' ', '_').replace(',', '')
+                    st.download_button('⬇ PDF', data=pdf_bytes,
+                                       file_name=f"caso_{emp_slug}.pdf",
+                                       mime='application/pdf',
+                                       use_container_width=True)
+                except Exception as e:
+                    st.caption(f'PDF: {e}')
         return
 
     # Creator email persisted in session
