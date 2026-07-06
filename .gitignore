@@ -1,0 +1,12 @@
+.streamlit/secrets.toml
+*.json
+!.devcontainer/devcontainer.json
+*.xlsx
+*.xls
+*.csv
+*.pkl
+*.pdf
+*.png
+__pycache__/
+*.pyc
+evolucion_costo.html
