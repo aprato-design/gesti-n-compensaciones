@@ -1205,6 +1205,7 @@ function updateSeniorityView() {
       pointHoverRadius: 6,
       tension: 0.2,
       spanGaps: true,
+      hidden: true,
     };
   });
 
