@@ -1229,7 +1229,17 @@ function updateSeniorityView() {
       },
       scales: {
         x: { grid: { display: false }, ticks: { font: { size: 12 } } },
-        y: { grid: { color: '#f0f0f0' }, ticks: { callback: function(v) { return '$' + v.toFixed(0); } } }
+        y: {
+          grid: { color: '#f0f0f0' },
+          ticks: {
+            callback: function(v) {
+              var label = '$' + v.toFixed(0);
+              if (label === this._lastSenLabel) return '';
+              this._lastSenLabel = label;
+              return label;
+            }
+          }
+        }
       }
     }
   });
