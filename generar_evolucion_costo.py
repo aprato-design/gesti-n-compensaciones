@@ -582,6 +582,9 @@ def combinar(old_data, comp21_data, comp22_data,
         if is_doppler:
             continue   # excluir Doppler del HTML (se mantiene en BDD)
 
+        if 'cosmolex' in division.lower():
+            department = 'Cosmolex'   # tratar Cosmolex como un departamento más, filtrable
+
         datos_sorted = [
             {'mes': mes, 'costo': v['costo'], 'fuente': v['fuente'],
              'code': v.get('code', ''),
