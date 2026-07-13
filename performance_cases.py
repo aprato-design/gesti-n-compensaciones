@@ -274,6 +274,7 @@ def load_empleados() -> pd.DataFrame:
         'Banda Med': 'banda_med',
         'Banda Max': 'banda_max',
         'Hire Date': 'hire_date',
+        'Department': 'department',
     })
 
     for col in ['bill', 'payroll', 'costo_usd_h', 'banda_min', 'banda_med', 'banda_max']:
@@ -281,7 +282,7 @@ def load_empleados() -> pd.DataFrame:
 
     keep = ['email', 'name', 'code', 'seniority', 'new_code', 'xm', 'agreement',
             'per', 'currency', 'bill', 'payroll', 'costo_usd_h', 'banda_min',
-            'banda_med', 'banda_max', 'hire_date']
+            'banda_med', 'banda_max', 'hire_date', 'department']
     return df[[c for c in keep if c in df.columns]].reset_index(drop=True)
 
 
@@ -1649,6 +1650,69 @@ def show_closed_list(casos_df: pd.DataFrame):
         st.markdown('<hr class="list-sep">', unsafe_allow_html=True)
 
 
+def show_metrics(casos_df: pd.DataFrame, empleados_df: pd.DataFrame):
+    closed_df = casos_df[casos_df['status'] == STATUS_CLOSED] if not casos_df.empty else pd.DataFrame()
+
+    st.markdown('#### Métricas de casos cerrados')
+
+    if closed_df.empty:
+        st.info('No hay casos cerrados todavía.')
+        return
+
+    total = len(closed_df)
+    total_diff_h = closed_df['differential'].sum()
+    total_budget_mensual = total_diff_h * HORAS
+
+    st.markdown(
+        f'<div class="budget-box">'
+        f'<b>💰 Presupuesto ejecutado en cambios salariales</b><br>'
+        f'Diferencial total: <b>{total_diff_h:+.4f} USD/H</b> &nbsp;·&nbsp; '
+        f'Impacto mensual (×168): <b>${total_budget_mensual:,.0f} USD</b> — '
+        f'{total} caso{"s" if total != 1 else ""} cerrado{"s" if total != 1 else ""}'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+
+    # ── Resultado por tipo ──────────────────────────────────────────────────────
+    st.markdown('<div class="section-header">Resultado de casos cerrados</div>', unsafe_allow_html=True)
+    cols = st.columns(len(TIPOS_CASO))
+    for col, tipo in zip(cols, TIPOS_CASO):
+        sub = closed_df[closed_df['tipo'] == tipo]
+        cnt = len(sub)
+        pct = (cnt / total * 100) if total else 0
+        col.metric(tipo, f'{pct:.1f}%', f'{cnt} caso{"s" if cnt != 1 else ""}', delta_color='off')
+
+    # ── Por departamento ──────────────────────────────────────────────────────
+    st.markdown('<div class="section-header">Por departamento</div>', unsafe_allow_html=True)
+
+    if 'department' in empleados_df.columns:
+        dept_map = empleados_df[['email', 'department']].drop_duplicates('email')
+    else:
+        dept_map = pd.DataFrame(columns=['email', 'department'])
+
+    merged = closed_df.merge(dept_map, left_on='employee_email', right_on='email', how='left')
+    merged['department'] = merged['department'].replace('', None)
+    merged['department'] = merged['department'].fillna('Sin datos / Ex-empleado')
+
+    dept_summary = (
+        merged.groupby('department')
+        .agg(casos=('id', 'count'), diff_h=('differential', 'sum'))
+        .reset_index()
+    )
+    dept_summary['impacto_mensual'] = dept_summary['diff_h'] * HORAS
+    dept_summary['pct_casos'] = dept_summary['casos'] / total * 100
+    dept_summary = dept_summary.sort_values('impacto_mensual', ascending=False)
+
+    display = dept_summary[['department', 'casos', 'pct_casos', 'impacto_mensual']].copy()
+    display.columns = ['Departamento', 'Casos cerrados', '% de casos', 'Impacto mensual (USD)']
+
+    styled = display.style.format({
+        '% de casos': '{:.1f}%',
+        'Impacto mensual (USD)': lambda v: fmt_usd(v, zero_dash=False),
+    })
+    st.dataframe(styled, use_container_width=True, hide_index=True)
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -1733,9 +1797,10 @@ def main():
     open_count = (casos_df['status'] == STATUS_OPEN).sum() if not casos_df.empty else 0
     closed_count = (casos_df['status'] == STATUS_CLOSED).sum() if not casos_df.empty else 0
 
-    tab_open, tab_closed = st.tabs([
+    tab_open, tab_closed, tab_metrics = st.tabs([
         f'📂 Abiertos ({open_count})',
         f'✅ Cerrados ({closed_count})',
+        '📊 Métricas',
     ])
 
     with tab_open:
@@ -1743,6 +1808,9 @@ def main():
 
     with tab_closed:
         show_closed_list(casos_df)
+
+    with tab_metrics:
+        show_metrics(casos_df, empleados_df)
 
 
 if __name__ == '__main__':
