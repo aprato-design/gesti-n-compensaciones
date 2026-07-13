@@ -685,7 +685,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <!-- Navegación -->
   <ul class="nav nav-pills mb-4">
     <li class="nav-item">
-      <button class="nav-link active" id="btn-agg" onclick="switchTab('agg')">Análisis Agregado</button>
+      <button class="nav-link active" id="btn-agg" onclick="switchTab('agg')">Costo Mensual</button>
     </li>
     <li class="nav-item ms-2">
       <button class="nav-link" id="btn-level" onclick="switchTab('level')">Por Level</button>
@@ -713,20 +713,17 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
             <option value="">Todos</option>
           </select>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
           <label class="form-label small fw-semibold text-muted mb-1">Agreement</label>
           <select id="sel-agreement" class="form-select" onchange="updateAggChart()">
             <option value="">Todos</option>
           </select>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
           <label class="form-label small fw-semibold text-muted mb-1">Code</label>
           <select id="sel-code" class="form-select" onchange="updateAggChart()">
             <option value="">Todos</option>
           </select>
-        </div>
-        <div class="col-md-2 d-flex align-items-end pb-1">
-          <span id="agg-count" class="badge bg-secondary" style="font-size:.9rem">— personas</span>
         </div>
       </div>
     </div>
@@ -779,17 +776,20 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <!-- ═══ SECCIÓN 2: POR LEVEL ══════════════════════════════════════════════ -->
   <div id="section-level" style="display:none">
 
-    <!-- Filtro departamento -->
+    <!-- Filtro departamento / agreement -->
     <div class="card p-3 mb-3">
       <div class="row g-2 align-items-end">
-        <div class="col-md-5">
+        <div class="col-md-6">
           <label class="form-label">Departamento</label>
           <select id="sel-sen-dept" class="form-select" onchange="updateSeniorityView()">
             <option value="">Todos los departamentos</option>
           </select>
         </div>
-        <div class="col-md-3 d-flex align-items-end pb-1">
-          <span id="sen-count" class="badge bg-secondary" style="font-size:.9rem">— personas</span>
+        <div class="col-md-6">
+          <label class="form-label">Agreement</label>
+          <select id="sel-sen-agreement" class="form-select" onchange="updateSeniorityView()">
+            <option value="">Todos</option>
+          </select>
         </div>
       </div>
     </div>
@@ -943,7 +943,7 @@ function switchTab(tab) {
   if (tab === 'level' && !senChart) updateSeniorityView();
 }
 
-// ── Sección 1: Análisis Agregado ───────────────────────────────────────────
+// ── Sección 1: Costo Mensual ────────────────────────────────────────────────
 var selDivision  = document.getElementById('sel-division');
 var selCode      = document.getElementById('sel-code');
 var selAgreement = document.getElementById('sel-agreement');
@@ -979,8 +979,6 @@ function updateAggChart() {
   var countryFilter = selCountry.value;
 
   var mesMap = {};
-  var emailsInFilter = new Set();
-
   DATA.personas.forEach(function(p) {
     var divOk     = !divFilter     || p.division === divFilter;
     var countryOk = !countryFilter || p.country  === countryFilter;
@@ -992,12 +990,9 @@ function updateAggChart() {
       if (codeOk && agrOk) {
         if (!mesMap[d.mes]) mesMap[d.mes] = [];
         mesMap[d.mes].push(d.costo);
-        emailsInFilter.add(p.email);
       }
     });
   });
-
-  document.getElementById('agg-count').textContent = emailsInFilter.size + ' personas';
 
   var unidadAgg = 'USD/H';
 
@@ -1148,6 +1143,13 @@ DATA.departments.forEach(function(d) {
   selSenDept.appendChild(o);
 });
 
+var selSenAgreement = document.getElementById('sel-sen-agreement');
+DATA.agreements.forEach(function(a) {
+  var o = document.createElement('option');
+  o.value = a; o.textContent = a;
+  selSenAgreement.appendChild(o);
+});
+
 var senChart = null;
 var YEARS = ['2021','2022','2023','2024','2025','2026'];
 var SEN_COLORS = [
@@ -1162,17 +1164,17 @@ var SEN_ORDER = [
 
 function updateSeniorityView() {
   var deptFilter = selSenDept.value;
+  var agrFilter  = selSenAgreement.value;
 
   // Acumular: level → year → [costos]
   var bySnYear = {};
-  var count = 0;
 
   DATA.personas.forEach(function(p) {
     if (!p.level) return;
     if (deptFilter && p.department !== deptFilter) return;
-    count++;
     p.datos.forEach(function(d) {
       if (d.costo <= 0) return;
+      if (agrFilter && d.agreement !== agrFilter) return;
       var yr = d.mes.slice(0, 4);
       if (YEARS.indexOf(yr) === -1) return;
       if (!bySnYear[p.level]) bySnYear[p.level] = {};
@@ -1180,8 +1182,6 @@ function updateSeniorityView() {
       bySnYear[p.level][yr].push(d.costo);
     });
   });
-
-  document.getElementById('sen-count').textContent = count + ' personas';
 
   var allSen = Object.keys(bySnYear);
   var seniorities = SEN_ORDER.filter(function(s) { return allSen.indexOf(s) !== -1; })
