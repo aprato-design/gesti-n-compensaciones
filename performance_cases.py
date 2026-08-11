@@ -424,7 +424,7 @@ def update_caso(caso_id: str, data: dict):
             new_row = []
             for j, col in enumerate(CASOS_COLS):
                 new_row.append(str(data.get(col, row[j] if j < len(row) else '')))
-            end_col = chr(ord('A') + len(CASOS_COLS) - 1)
+            end_col = re.sub(r'\d+$', '', gspread.utils.rowcol_to_a1(1, len(CASOS_COLS)))
             ws.update(f'A{i}:{end_col}{i}', [new_row], value_input_option='USER_ENTERED')
             st.cache_data.clear()
             return
