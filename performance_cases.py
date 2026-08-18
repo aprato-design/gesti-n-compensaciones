@@ -289,7 +289,7 @@ def load_empleados() -> pd.DataFrame:
 @st.cache_data(ttl=300, show_spinner=False)
 def load_bandas() -> pd.DataFrame:
     gc = get_gc()
-    sh = gc.open_by_key(SPREADSHEET_ID)
+    sh = gc.open_by_key(VARIABLES_SHEET_ID)
     ws = sh.worksheet(SHEET_BANDAS)
     rows = ws.get_all_values()
 
