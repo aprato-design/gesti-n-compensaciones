@@ -251,11 +251,11 @@ def load_empleados() -> pd.DataFrame:
     df = df[df['Month'].notna()]
     df = df.sort_values('Month')
 
-    # Active only
-    df = df[df['Movimiento'] == 'Activo']
-
-    # Latest month per employee
+    # Latest month per employee (regardless of status)
     df = df.drop_duplicates(subset='Employee #', keep='last')
+
+    # Keep only those whose latest record is Active
+    df = df[df['Movimiento'] == 'Activo']
 
     df = df.rename(columns={
         'Employee #': 'email',
@@ -1160,6 +1160,12 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
         peers['Nivel'] = peers['new_code'].apply(
             lambda c: '➡ Siguiente' if c == next_code else 'Actual'
         )
+        # Recompute bands live from Bandas Div instead of the snapshot stored
+        # per-row in Sueldos, so peers match the live bands used for the proposal.
+        live_bandas = peers['new_code'].apply(lambda c: get_banda_for_code(c, bandas_df))
+        peers['banda_min'] = live_bandas.apply(lambda d: d['banda_min'])
+        peers['banda_med'] = live_bandas.apply(lambda d: d['banda_med'])
+        peers['banda_max'] = live_bandas.apply(lambda d: d['banda_max'])
         def _gap_banda(row):
             c, bmin, bmax = row['costo_usd_h'], row['banda_min'], row['banda_max']
             if not bmin or not bmax:
