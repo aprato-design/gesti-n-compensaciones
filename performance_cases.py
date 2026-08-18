@@ -1065,10 +1065,13 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
         cur_bill = float(emp.get('bill', 0) or 0)
         cur_payroll = float(emp.get('payroll', 0) or 0)
         cur_costo = float(emp.get('costo_usd_h', 0) or 0)
-        banda_min = float(emp.get('banda_min', 0) or 0)
-        banda_med = float(emp.get('banda_med', 0) or 0)
-        banda_max = float(emp.get('banda_max', 0) or 0)
         new_code_empleado = emp.get('new_code', '')
+        # Live band for the employee's current code, instead of the snapshot
+        # stored per-row in Sueldos (can be stale vs the current Bandas Div).
+        live_banda = get_banda_for_code(new_code_empleado, bandas_df)
+        banda_min = float(live_banda.get('banda_min') or 0)
+        banda_med = float(live_banda.get('banda_med') or 0)
+        banda_max = float(live_banda.get('banda_max') or 0)
         emp_name = emp['name']
 
     # ── Info card (Colaborador) ───────────────────────────────────────────────
