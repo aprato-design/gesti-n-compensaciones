@@ -633,6 +633,15 @@ body.metrics-mode .metrics-panel{display:block;background:var(--ms-white);paddin
 .metric-count{width:90px;flex-shrink:0;text-align:right;font-family:var(--font-mono);font-size:11.5px;font-weight:700;color:var(--ms-dark);}
 .metric-pct{font-weight:500;color:var(--tbl-text3);}
 .metric-empty{color:var(--tbl-text3);font-style:italic;text-align:center;padding:32px;}
+.metric-card-wide{margin-bottom:24px;}
+.metric-card-sub{color:var(--tbl-text3);font-size:11px;margin-bottom:12px;}
+.metric-trend-wrap{overflow-x:auto;}
+.metric-trend-table{width:100%;border-collapse:collapse;font-size:12px;}
+.metric-trend-table th{text-align:left;padding:8px 12px;font-size:10px;text-transform:uppercase;letter-spacing:var(--ls-eyebrow);color:var(--tbl-text2);border-bottom:1px solid var(--tbl-border2);font-weight:700;}
+.metric-trend-table td{padding:8px 12px;border-bottom:1px solid var(--tbl-border);font-family:var(--font-mono);}
+.metric-trend-table td:first-child{font-family:var(--font-sans);font-weight:600;color:var(--ms-dark);}
+.metric-trend-table tbody tr:last-child td{border-bottom:none;}
+.metric-live-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:var(--radius-pill);font-size:9px;font-weight:700;background:rgba(14,204,126,.15);color:var(--ms-green-deep);margin-left:8px;letter-spacing:.03em;text-transform:uppercase;}
 
 /* ── ACTION COLUMN ── */
 .action-cell{min-width:280px;padding:8px 12px !important;white-space:normal !important;}
@@ -816,6 +825,16 @@ body.viewer .note-input{pointer-events:none;background-color:var(--ms-grey-50)!i
 </div>
 
 <div class="metrics-panel" id="metrics-section">
+  <div class="metric-card metric-card-wide">
+    <h3>Evolución Mensual</h3>
+    <div class="metric-card-sub" id="metrics-trend-sub"></div>
+    <div class="metric-trend-wrap">
+      <table class="metric-trend-table">
+        <thead><tr><th>Mes</th><th>Headcount</th><th>% Saludable ±5%</th><th>Costo a Mínimo</th></tr></thead>
+        <tbody id="metrics-trend-body"></tbody>
+      </table>
+    </div>
+  </div>
   <div class="metrics-summary" id="metrics-summary"></div>
   <div class="metrics-grid">
     <div class="metric-card">
@@ -1080,6 +1099,45 @@ function metricsFilteredData(){
   });
 }
 
+// "Saludable" = en banda o hasta ±5% de la banda (las 2 categorías más leves del gap).
+const SALUDABLE_GAP_SET=new Set(['En banda','Encima del 0% y 5%','Debajo de 0% a -5%']);
+
+function costoAMinimo(rows){
+  return rows.reduce((acc,d)=>{
+    if(!(d['% GAP Banda']||'').startsWith('Debajo'))return acc;
+    const costo=parseFloat(d['Costo USD/H']), bmin=parseFloat(d['Banda Min']);
+    if(isNaN(costo)||isNaN(bmin))return acc;
+    const diff=bmin-costo;
+    return acc+(diff>0?diff:0);
+  },0);
+}
+
+// Evolución mensual: cada mes ya es una fila histórica propia en el sheet (una carga de
+// actualizar_mes_sheets.py), así que calcular esto en vivo desde ALL_DATA ya deja fijos los
+// meses cerrados sin necesidad de guardar ningún snapshot aparte — solo el último mes
+// (el que todavía se sigue tocando/corrigiendo) se ve "vivo" al recargar la página.
+function renderMetricsTrend(){
+  const tbody=document.getElementById('metrics-trend-body');
+  const sub=document.getElementById('metrics-trend-sub');
+  sub.textContent=metricsDept||'Todos los departamentos';
+  if(!MONTHS.length){ tbody.innerHTML='<tr><td colspan="4" class="metric-empty" style="font-family:var(--font-sans)">Sin datos</td></tr>'; return; }
+  const lastMonth=MONTHS[MONTHS.length-1];
+  tbody.innerHTML=MONTHS.map(m=>{
+    const rows=ALL_DATA.filter(d=>d.Month===m && (!metricsDept||d.Department===metricsDept));
+    const total=rows.length;
+    const healthy=rows.filter(d=>SALUDABLE_GAP_SET.has(d['% GAP Banda'])).length;
+    const pctSaludable=total?(healthy/total*100).toFixed(1)+'%':'—';
+    const costoMin=costoAMinimo(rows);
+    const liveBadge=m===lastMonth?'<span class="metric-live-badge">En curso</span>':'';
+    return `<tr>
+      <td>${ML[m]||m}${liveBadge}</td>
+      <td>${total}</td>
+      <td>${pctSaludable}</td>
+      <td>$${costoMin.toFixed(1)}</td>
+    </tr>`;
+  }).join('');
+}
+
 function metricBars(data,field,order,colorFn,labelFn){
   const total=data.length;
   const counts={};
@@ -1103,6 +1161,7 @@ function metricBars(data,field,order,colorFn,labelFn){
 }
 
 function renderMetrics(){
+  renderMetricsTrend();
   const data=metricsFilteredData();
   const total=data.length;
   const mesLbl=ML[activeMonth]||activeMonth;
@@ -1127,13 +1186,7 @@ function renderStats(){
   const emp=filtered.filter(d=>d.Agreement==='Empleado').length;
   const cs=filtered.map(d=>parseFloat(d['Costo USD/H'])).filter(n=>!isNaN(n));
   const avg=cs.length?(cs.reduce((a,b)=>a+b,0)/cs.length).toFixed(1):'—';
-  const costoNivelar=filtered.reduce((acc,d)=>{
-    if(!(d['% GAP Banda']||'').startsWith('Debajo'))return acc;
-    const costo=parseFloat(d['Costo USD/H']), bmin=parseFloat(d['Banda Min']);
-    if(isNaN(costo)||isNaN(bmin))return acc;
-    const diff=bmin-costo;
-    return acc+(diff>0?diff:0);
-  },0);
+  const costoNivelar=costoAMinimo(filtered);
   document.getElementById('stats').innerHTML=`
     <div class="stat"><div class="stat-v">${t}</div><div class="stat-l">Personas</div></div>
     <div class="stat"><div class="stat-v green">${eb}</div><div class="stat-l">En banda</div></div>
