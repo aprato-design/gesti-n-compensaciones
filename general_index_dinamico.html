@@ -634,6 +634,7 @@ body.metrics-mode .metrics-panel{display:block;background:var(--ms-white);paddin
 .metric-pct{font-weight:500;color:var(--tbl-text3);}
 .metric-empty{color:var(--tbl-text3);font-style:italic;text-align:center;padding:32px;}
 .metric-card-wide{margin-bottom:24px;}
+.metric-card-trend{margin-top:24px;margin-bottom:0;}
 .metric-card-sub{color:var(--tbl-text3);font-size:11px;margin-bottom:12px;}
 .metric-trend-wrap{overflow-x:auto;}
 .metric-trend-table{width:100%;border-collapse:collapse;font-size:12px;}
@@ -825,16 +826,6 @@ body.viewer .note-input{pointer-events:none;background-color:var(--ms-grey-50)!i
 </div>
 
 <div class="metrics-panel" id="metrics-section">
-  <div class="metric-card metric-card-wide">
-    <h3>Evolución Mensual</h3>
-    <div class="metric-card-sub" id="metrics-trend-sub"></div>
-    <div class="metric-trend-wrap">
-      <table class="metric-trend-table">
-        <thead><tr><th>Mes</th><th>Headcount</th><th>% Saludable ±5%</th><th>Costo a Mínimo</th></tr></thead>
-        <tbody id="metrics-trend-body"></tbody>
-      </table>
-    </div>
-  </div>
   <div class="metrics-summary" id="metrics-summary"></div>
   <div class="metrics-grid">
     <div class="metric-card">
@@ -844,6 +835,16 @@ body.viewer .note-input{pointer-events:none;background-color:var(--ms-grey-50)!i
     <div class="metric-card">
       <h3>Ajuste Último Año</h3>
       <div class="metric-body" id="metrics-ajuste-body"></div>
+    </div>
+  </div>
+  <div class="metric-card metric-card-wide metric-card-trend">
+    <h3>Evolución Mensual</h3>
+    <div class="metric-card-sub" id="metrics-trend-sub"></div>
+    <div class="metric-trend-wrap">
+      <table class="metric-trend-table">
+        <thead><tr><th>Mes</th><th>Headcount</th><th>% Saludable ±5%</th><th>Costo a Mínimo</th></tr></thead>
+        <tbody id="metrics-trend-body"></tbody>
+      </table>
     </div>
   </div>
 </div>
