@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compensaciones 2026 — MS General (Apps Script)</title>
+<style id="ms-ds-tokens">
+/* ===== Making Sense DS — fonts via Google Fonts CDN ===== */
+@import url('https://fonts.googleapis.com/css2?family=Red+Hat+Display:ital,wght@0,300..900;1,300..900&display=swap');
+
+:root {
+  /* =================================================================
+     COLOR — Primary brand
+     The three-color identity core. Gradient runs green → sense-blue.
+     Pantones: Making-green 7479C · Sense-blue 3115C · Dark-blue 539C
+     ================================================================= */
+  --ms-green:         #0ECC7E;   /* Making-green — primary       */
+  --ms-green-deep:    #08B368;   /* darker step, hover state     */
+  --ms-blue:          #00C6D1;   /* Sense-blue — primary         */
+  --ms-blue-deep:     #00A8B2;   /* darker step, hover state     */
+  --ms-dark:          #102532;   /* Dark-blue — primary text     */
+
+  /* Legacy alias (kept so older components keep working) */
+  --ms-teal:          var(--ms-blue);
+  --ms-teal-deep:     var(--ms-blue-deep);
+  --ms-mint:          #7FE3C2;   /* soft tint for backgrounds    */
+  --ms-mint-pale:     #E6FAF3;   /* softest tint, surfaces       */
+
+  /* Signature gradient — used on headlines, icons, accent rules. */
+  --ms-gradient:   linear-gradient(90deg, var(--ms-green) 0%, var(--ms-blue) 100%);
+  --ms-gradient-h: linear-gradient(90deg, var(--ms-green) 0%, var(--ms-blue) 100%);
+  --ms-gradient-v: linear-gradient(180deg, var(--ms-green) 0%, var(--ms-blue) 100%);
+  --ms-gradient-d: linear-gradient(135deg, var(--ms-green) 0%, var(--ms-blue) 100%);
+
+  /* =================================================================
+     COLOR — Secondary brand
+     Reserved for specific uses — moderate, strategic, never
+     competing with the primaries.
+     Pantones: Purple 265C · Red 1785C · Orange 150C
+     ================================================================= */
+  --ms-purple:        #9273F4;
+  --ms-red:           #FF5551;
+  --ms-orange:        #FFA143;
+
+  /* =================================================================
+     COLOR — Grey scale (official 12-step)
+     ================================================================= */
+  --ms-white:         #FFFFFF;
+  --ms-grey-50:       #F9F9F9;
+  --ms-grey-100:      #F4F4F4;
+  --ms-grey-200:      #EEEEEE;
+  --ms-grey-300:      #E0E0E0;
+  --ms-grey-400:      #BDBDBD;
+  --ms-grey-500:      #9E9E9E;
+  --ms-grey-600:      #757575;
+  --ms-grey-700:      #616161;
+  --ms-grey-800:      #424242;
+  --ms-grey-900:      #212121;
+  --ms-black:         #000000;
+
+  /* Legacy navy aliases — map to nearest grey / primary Dark-blue
+     so existing components don't break. */
+  --ms-navy-900:      var(--ms-dark);
+  --ms-navy-800:      var(--ms-dark);      /* primary text        */
+  --ms-navy-700:      var(--ms-grey-800);
+  --ms-navy-600:      var(--ms-grey-700);
+  --ms-navy-500:      var(--ms-grey-600);
+  --ms-navy-400:      var(--ms-grey-500);
+  --ms-navy-300:      var(--ms-grey-400);
+  --ms-navy-200:      var(--ms-grey-300);
+  --ms-navy-100:      var(--ms-grey-200);
+  --ms-navy-50:       var(--ms-grey-50);
+
+  /* =================================================================
+     COLOR — Semantic
+     Semantics lean on the palette: success = Making-green, info =
+     Sense-blue, warning = secondary Orange, danger = secondary Red.
+     ================================================================= */
+  --ms-success:       var(--ms-green);
+  --ms-warning:       var(--ms-orange);
+  --ms-danger:        var(--ms-red);
+  --ms-info:          var(--ms-blue);
+
+  /* =================================================================
+     COLOR — Semantic / Usage tokens
+     Prefer these in components over raw palette.
+     ================================================================= */
+  --fg-1:             var(--ms-dark);         /* primary text   */
+  --fg-2:             var(--ms-grey-600);     /* secondary      */
+  --fg-3:             var(--ms-grey-500);     /* tertiary       */
+  --fg-on-dark:       var(--ms-white);
+  --fg-on-dark-2:     rgba(255,255,255,0.72);
+  --fg-accent:        var(--ms-blue-deep);    /* inline links   */
+
+  --bg-0:             var(--ms-white);        /* page           */
+  --bg-1:             var(--ms-grey-50);      /* elevated card  */
+  --bg-2:             var(--ms-grey-100);     /* inset panel    */
+  --bg-dark:          var(--ms-dark);         /* dark section   */
+  --bg-darker:        #0A1A24;
+
+  --border-1:         var(--ms-grey-300);
+  --border-2:         var(--ms-grey-400);
+  --border-on-dark:   rgba(255,255,255,0.12);
+
+  /* =================================================================
+     TYPE — Families
+     ================================================================= */
+  --font-sans:  "Red Hat Display", ui-sans-serif, system-ui, -apple-system,
+                "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:  ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas,
+                "Liberation Mono", "Courier New", monospace;
+
+  /* =================================================================
+     TYPE — Scale (1.25 ratio, rounded)
+     ================================================================= */
+  --fs-12:  0.75rem;   --lh-12: 1.5;
+  --fs-14:  0.875rem;  --lh-14: 1.5;
+  --fs-16:  1rem;      --lh-16: 1.6;
+  --fs-18:  1.125rem;  --lh-18: 1.55;
+  --fs-20:  1.25rem;   --lh-20: 1.5;
+  --fs-24:  1.5rem;    --lh-24: 1.4;
+  --fs-32:  2rem;      --lh-32: 1.25;
+  --fs-40:  2.5rem;    --lh-40: 1.15;
+  --fs-56:  3.5rem;    --lh-56: 1.05;
+  --fs-72:  4.5rem;    --lh-72: 1.0;
+
+  /* Semantic type styles */
+  --display-1: 900 var(--fs-72)/var(--lh-72) var(--font-sans);
+  --display-2: 900 var(--fs-56)/var(--lh-56) var(--font-sans);
+  --h1:        800 var(--fs-40)/var(--lh-40) var(--font-sans);
+  --h2:        700 var(--fs-32)/var(--lh-32) var(--font-sans);
+  --h3:        700 var(--fs-24)/var(--lh-24) var(--font-sans);
+  --h4:        600 var(--fs-20)/var(--lh-20) var(--font-sans);
+  --h5:        600 var(--fs-18)/var(--lh-18) var(--font-sans);
+  --body-lg:   400 var(--fs-18)/var(--lh-18) var(--font-sans);
+  --body:      400 var(--fs-16)/var(--lh-16) var(--font-sans);
+  --body-sm:   400 var(--fs-14)/var(--lh-14) var(--font-sans);
+  --caption:   500 var(--fs-12)/var(--lh-12) var(--font-sans);
+  --eyebrow:   700 var(--fs-12)/1.2 var(--font-sans); /* uppercase */
+  --code:      500 var(--fs-14)/var(--lh-14) var(--font-mono);
+
+  /* Letter-spacing */
+  --ls-tight:   -0.02em;
+  --ls-snug:    -0.01em;
+  --ls-normal:   0;
+  --ls-wide:     0.04em;
+  --ls-eyebrow:  0.12em;
+
+  /* =================================================================
+     SPACING — 4px base
+     ================================================================= */
+  --space-0:  0;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+
+  /* =================================================================
+     RADII
+     ================================================================= */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* =================================================================
+     SHADOWS — neutral grey, never tinted.
+     ================================================================= */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.10);
+  --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.14);
+
+  /* =================================================================
+     MOTION
+     ================================================================= */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.5, 0, 0.2, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+
+  /* =================================================================
+     LAYOUT
+     ================================================================= */
+  --container-max: 1200px;
+  --gutter: 24px;
+}
+
+/* =========================================================================
+   Reset + base
+   ========================================================================= */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font: var(--body);
+  color: var(--fg-1);
+  background: var(--bg-0);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Semantic element defaults */
+h1 { font: var(--h1); letter-spacing: var(--ls-tight); margin: 0; color: var(--fg-1); }
+h2 { font: var(--h2); letter-spacing: var(--ls-snug);  margin: 0; color: var(--fg-1); }
+h3 { font: var(--h3); letter-spacing: var(--ls-snug);  margin: 0; color: var(--fg-1); }
+h4 { font: var(--h4); margin: 0; color: var(--fg-1); }
+h5 { font: var(--h5); margin: 0; color: var(--fg-1); }
+p  { font: var(--body); margin: 0; color: var(--fg-1); text-wrap: pretty; }
+small { font: var(--body-sm); color: var(--fg-2); }
+code, pre { font: var(--code); }
+a { color: var(--fg-accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Utility classes you'll reach for often */
+.ms-eyebrow {
+  font: var(--eyebrow);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--ms-green);
+}
+.ms-gradient-text {
+  background: var(--ms-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+.ms-gradient-bg { background: var(--ms-gradient); color: var(--fg-on-dark); }
+.ms-container { max-width: var(--container-max); margin: 0 auto; padding: 0 var(--gutter); }
+
+</style>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Dark zone (header) — Making Sense Dark-blue */
+  --dk-bg: var(--ms-dark);
+  --dk-surface: var(--ms-dark);
+  --dk-surface2: #1A2E3F;
+  --dk-border: rgba(255,255,255,0.12);
+  --dk-text: var(--fg-on-dark);
+  --dk-text2: var(--fg-on-dark-2);
+
+  /* Light zone (filters/stats/table) */
+  --tbl-bg: var(--ms-white);
+  --tbl-surface: var(--ms-grey-50);
+  --tbl-border: var(--ms-grey-200);
+  --tbl-border2: var(--ms-grey-300);
+  --tbl-text: var(--ms-dark);
+  --tbl-text2: var(--ms-grey-700);
+  --tbl-text3: var(--ms-grey-500);
+  --tbl-hover: var(--ms-grey-50);
+  --tbl-head: #FBFBFB;
+
+  /* Accent — gradient + brand primaries */
+  --blue: var(--ms-blue-deep);
+  --blue-light: var(--ms-blue);
+  --green: var(--ms-green);
+  --amber: var(--ms-orange);
+  --red: var(--ms-red);
+  --purple: var(--ms-purple);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background: var(--bg-1);
+  color: var(--fg-1);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-feature-settings: "ss01","cv11";
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ════ HEADER (dark) ════ */
+header{
+  background: var(--dk-surface);
+  position: relative;
+  padding: 18px 28px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+}
+header::after{
+  content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+  background: var(--ms-gradient-h);
+}
+.brand{display:flex;align-items:center;gap:18px;}
+.brand-logo{height:26px;width:auto;display:block;}
+.brand-divider{width:1px;height:28px;background: rgba(255,255,255,0.18);}
+.logo-area{display:flex;flex-direction:column;gap:2px;}
+.logo-area h1{
+  font-family: var(--font-sans);
+  font-size: 17px; font-weight: 700;
+  color: var(--dk-text);
+  letter-spacing: var(--ls-snug);
+  line-height: 1.2;
+}
+.logo-area p{
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ms-green);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-eyebrow);
+  font-family: var(--font-sans);
+}
+
+.search-wrap{position:relative;}
+.search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--dk-text2);pointer-events:none;}
+#search{
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: var(--radius-pill);
+  color: var(--dk-text);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  padding: 8px 14px 8px 32px;
+  width: 240px;
+  outline: none;
+  transition: all var(--dur-fast) var(--ease-out);
+}
+#search:focus{
+  border-color: var(--ms-blue);
+  background: rgba(255,255,255,0.10);
+  box-shadow: 0 0 0 3px rgba(0,198,209,0.18);
+}
+#search::placeholder{color:var(--dk-text2);}
+
+/* ════ FILTER BAR (light) ════ */
+.filter-bar{
+  background: var(--ms-white);
+  border-bottom: 1px solid var(--tbl-border);
+  padding: 12px 28px;
+  display:flex;gap:12px;flex-wrap:wrap;align-items:center;
+}
+.dept-bar{
+  background: var(--ms-dark);
+  padding: 0 28px;
+  display:flex;gap:4px;flex-wrap:wrap;align-items:center;
+  overflow-x:auto;
+}
+.dept-tab{
+  padding: 12px 18px;
+  border: none;
+  background: transparent;
+  color: var(--fg-on-dark-2);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all var(--dur-fast) var(--ease-out);
+}
+.dept-tab:hover{color: var(--dk-text);}
+.dept-tab.active{
+  color: var(--dk-text);
+  border-bottom-color: var(--ms-green);
+}
+.dept-tab-metrics{margin-left:auto;}
+.metrics-only-filter{display:none;}
+body.metrics-mode .table-only-filter{display:none !important;}
+body.metrics-mode .metrics-only-filter{display:inline-flex;}
+body.metrics-mode select.metrics-only-filter{display:inline-block;}
+body.metrics-mode span.metrics-only-filter{display:inline;}
+body.metrics-mode #stats{display:none;}
+body.metrics-mode .table-section{display:none;}
+.fl{
+  color: var(--ms-grey-700);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--ls-eyebrow);
+}
+.pill-group{
+  display:flex;gap:2px;
+  background: var(--ms-grey-100);
+  border: 1px solid var(--ms-grey-200);
+  border-radius: var(--radius-pill);
+  padding: 3px;
+}
+.pill{
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  border: none;
+  background: transparent;
+  color: var(--ms-grey-700);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  transition: all var(--dur-fast) var(--ease-out);
+  white-space: nowrap;
+}
+.pill:hover{color: var(--ms-dark);}
+.pill.active{
+  background: var(--ms-dark);
+  color: var(--ms-white);
+  font-weight: 700;
+}
+.filter-bar select{
+  background: var(--ms-white);
+  border: 1px solid var(--ms-grey-300);
+  border-radius: var(--radius-sm);
+  color: var(--ms-dark);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 10px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.filter-bar select:hover{border-color: var(--ms-grey-400);}
+.filter-bar select:focus{border-color: var(--ms-blue); box-shadow: 0 0 0 3px rgba(0,198,209,0.15);}
+
+.msel{position:relative;}
+.msel-btn{
+  background: var(--ms-white);
+  border: 1px solid var(--ms-grey-300);
+  border-radius: var(--radius-sm);
+  color: var(--ms-dark);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 10px;
+  outline: none;
+  cursor: pointer;
+  display:flex;align-items:center;gap:6px;
+  transition: border-color var(--dur-fast) var(--ease-out);
+  max-width: 220px;
+}
+.msel-btn span.msel-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.msel-btn:hover{border-color: var(--ms-grey-400);}
+.msel.open .msel-btn{border-color: var(--ms-blue); box-shadow: 0 0 0 3px rgba(0,198,209,0.15);}
+.msel-caret{font-size:9px;color:var(--ms-grey-500);margin-left:auto;}
+.msel-panel{
+  display:none;
+  position:absolute;top:calc(100% + 4px);left:0;
+  background:var(--ms-white);
+  border:1px solid var(--tbl-border2);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.16);
+  padding:6px;
+  min-width:200px;
+  max-height:280px;
+  overflow-y:auto;
+  z-index:50;
+}
+.msel.open .msel-panel{display:block;}
+.msel-actions{display:flex;justify-content:space-between;padding:2px 8px 6px;border-bottom:1px solid var(--tbl-border);margin-bottom:4px;}
+.msel-actions button{background:none;border:none;color:var(--ms-blue);font-size:11px;font-weight:700;cursor:pointer;padding:0;}
+.msel-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--ms-dark);white-space:nowrap;}
+.msel-item:hover{background:var(--ms-grey-100);}
+.msel-item input{cursor:pointer;}
+
+/* ════ STATS BAR ════ */
+.stats-bar{
+  background: var(--ms-white);
+  border-bottom: 1px solid var(--tbl-border);
+  padding: 10px 28px;
+  display:flex;gap:0;flex-wrap:wrap;
+}
+.stat{
+  padding: 2px 18px;
+  border-right: 1px solid var(--ms-grey-200);
+  display:flex;flex-direction:column;gap:2px;
+}
+.stat:first-child{padding-left:0;}
+.stat:last-child{border-right:none;}
+.stat-v{
+  font-size: 18px;
+  font-weight: 800;
+  font-family: var(--font-sans);
+  letter-spacing: var(--ls-tight);
+  line-height: 1;
+  color: var(--ms-dark);
+  background: var(--ms-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.stat-v.solid-dark{
+  background: none;
+  -webkit-text-fill-color: initial;
+  color: var(--ms-dark);
+}
+.stat-v.green{
+  background: none;
+  -webkit-text-fill-color: initial;
+  color: var(--ms-green-deep);
+}
+.stat-v.red{
+  background: none;
+  -webkit-text-fill-color: initial;
+  color: var(--ms-red);
+}
+.stat-v.amber{
+  background: none;
+  -webkit-text-fill-color: initial;
+  color: var(--ms-orange);
+}
+.stat-v.purple{
+  background: none;
+  -webkit-text-fill-color: initial;
+  color: var(--ms-purple);
+}
+.stat-l{
+  font-size: 8.5px;
+  color: var(--ms-grey-700);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-eyebrow);
+  font-weight: 700;
+}
+
+/* ════ LIGHT TABLE ZONE ════ */
+.table-section{background: var(--ms-white);}
+.table-wrap{overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 230px);padding:0 28px 24px;}
+
+table{width:100%;border-collapse:collapse;font-size:12px;}
+
+thead th{
+  background: var(--tbl-head);
+  border-bottom: 1px solid var(--ms-grey-300);
+  padding: 11px 12px; text-align: left;
+  font-weight: 700;
+  color: var(--ms-grey-700);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: var(--ls-eyebrow);
+  white-space: nowrap; cursor: pointer; user-select: none;
+  position: sticky; top: 0; z-index: 1;
+  font-family: var(--font-sans);
+}
+thead th:hover{color: var(--ms-dark);}
+thead th .si{opacity:.35;margin-left:4px;font-style:normal;font-weight:700;}
+thead th.sorted .si{opacity:1;color:var(--ms-blue-deep);}
+
+thead th:first-child{position:sticky;left:0;top:0;z-index:4;background:var(--ms-grey-100);box-shadow:3px 0 6px rgba(16,37,50,.06);border-right:1px solid var(--ms-grey-300);}
+tbody td:first-child{position:sticky;left:0;z-index:1;background:var(--ms-grey-50);box-shadow:3px 0 6px rgba(16,37,50,.04);border-right:1px solid var(--ms-grey-200);}
+tbody tr:hover td:first-child{background:#EEF1F3;}
+tbody td:first-child strong{color:var(--ms-dark);font-weight:700;}
+
+tbody tr{border-bottom:1px solid var(--ms-grey-200);transition:background var(--dur-fast) var(--ease-out);}
+tbody tr:hover{background:var(--tbl-hover);}
+tbody tr.row-caso, tbody tr.row-caso td:first-child{background:var(--ms-grey-200);}
+tbody tr.row-caso:hover, tbody tr.row-caso:hover td:first-child{background:#E0E0E0;}
+td{padding:10px 12px;color:var(--tbl-text);white-space:nowrap;vertical-align:middle;font-family: var(--font-sans);}
+td.mono{font-family: var(--font-mono);font-size:11.5px;color:var(--tbl-text);font-weight:500;}
+td strong{font-weight:700;color:var(--ms-dark);}
+
+/* ── badges ── */
+.bdg{display:inline-flex;align-items:center;padding:3px 9px;border-radius: var(--radius-pill);font-size:10px;font-weight:700;line-height:1.4;letter-spacing:.02em;}
+.bdg-c{background:#E6FAFB;color:var(--ms-blue-deep);}
+.bdg-e{background:#E5FBEF;color:var(--ms-green-deep);}
+.bdg-p{background:#FFF1E0;color:#A55A1F;}
+
+/* ── gap status pills ── */
+.gp{display:inline-flex;align-items:center;padding:3px 9px;border-radius: var(--radius-pill);font-size:10px;font-weight:600;}
+.gg{background:#E5FBEF;color:var(--ms-green-deep);}
+.gy{background:#FFF8DD;color:#856B00;}
+.go{background:#FFF1E0;color:#A55A1F;}
+.gr{background:#FFE5E4;color:#C73835;}
+
+/* ── Status LC (colores fijos, mismo patrón visual que Estado Banda) ── */
+.stlc{display:inline-flex;align-items:center;padding:3px 9px;border-radius: var(--radius-pill);font-size:10px;font-weight:600;white-space:nowrap;}
+.stlc-notstarted{background:var(--ms-grey-200);color:var(--ms-grey-700);}
+.stlc-building{background:#FFF8DD;color:#856B00;}
+.stlc-reviewed{background:#E6FAFB;color:var(--ms-blue-deep);}
+.stlc-rfd{background:#E5FBEF;color:var(--ms-green-deep);}
+.stlc-rfc{background:#E1F0EF;color:#0F5E66;}
+.stlc-communicated{background:#F0EBFE;color:#5E45C2;}
+.stlc-red{background:#FFE5E4;color:#C73835;}
+
+/* ── GAP% numeric colored ── */
+.gap-num{font-family: var(--font-mono);font-size:11.5px;font-weight:600;padding:3px 8px;border-radius: var(--radius-pill);}
+.gap-num.gg{background:#E5FBEF;color:var(--ms-green-deep);}
+.gap-num.gy{background:#FFF8DD;color:#856B00;}
+.gap-num.go{background:#FFF1E0;color:#A55A1F;}
+.gap-num.gr{background:#FFE5E4;color:#C73835;}
+.gap-num.gn{color:var(--tbl-text2);background:transparent;font-weight:400;}
+
+/* ── pagination ── */
+.pagination{background: var(--ms-white);display:flex;justify-content:center;align-items:center;gap:6px;padding:16px 28px;border-top:1px solid var(--tbl-border);}
+.pb{
+  background: var(--ms-white);
+  border: 1px solid var(--ms-grey-300);
+  border-radius: var(--radius-pill);
+  color: var(--ms-grey-700);
+  padding: 6px 13px; cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 12px; font-weight: 600;
+  transition: all var(--dur-fast) var(--ease-out);
+  min-width: 32px;
+}
+.pb:hover:not(:disabled){border-color: var(--ms-dark);color:var(--ms-dark);}
+.pb:disabled{opacity:.3;cursor:default;}
+.pb.active{background: var(--ms-dark);border-color:var(--ms-dark);color: var(--ms-white);}
+.pi{color:var(--tbl-text3);font-size:11px;font-weight:500;margin-left:8px;}
+.empty-state{background:var(--tbl-bg);text-align:center;padding:56px;color:var(--tbl-text3);font-style:italic;}
+
+/* ════ METRICS TAB ════ */
+.metrics-panel{display:none;}
+body.metrics-mode .metrics-panel{display:block;background:var(--ms-white);padding:24px 28px 40px;}
+.metrics-summary{color:var(--tbl-text2);font-size:12.5px;font-weight:600;margin-bottom:20px;}
+.metrics-summary strong{color:var(--ms-dark);}
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+@media (max-width:900px){.metrics-grid{grid-template-columns:1fr;}}
+.metric-card{background:var(--bg-1);border:1px solid var(--tbl-border);border-radius:var(--radius-lg);padding:20px 22px;}
+.metric-card h3{font:var(--h5);color:var(--ms-dark);margin-bottom:16px;}
+.metric-body{display:flex;flex-direction:column;gap:12px;}
+.metric-row{display:flex;align-items:center;gap:12px;}
+.metric-label{width:150px;flex-shrink:0;font-size:11.5px;font-weight:600;color:var(--tbl-text2);}
+.metric-bar-track{flex:1;height:16px;background:var(--ms-grey-200);border-radius:var(--radius-pill);overflow:hidden;}
+.metric-bar-fill{height:100%;border-radius:var(--radius-pill);transition:width var(--dur-slow) var(--ease-out);}
+.metric-fill-gg{background:var(--ms-green);}
+.metric-fill-gy{background:#E0B400;}
+.metric-fill-go{background:var(--ms-orange);}
+.metric-fill-gr{background:var(--ms-red);}
+.metric-fill-neutral{background:var(--ms-grey-400);}
+.metric-count{width:90px;flex-shrink:0;text-align:right;font-family:var(--font-mono);font-size:11.5px;font-weight:700;color:var(--ms-dark);}
+.metric-pct{font-weight:500;color:var(--tbl-text3);}
+.metric-empty{color:var(--tbl-text3);font-style:italic;text-align:center;padding:32px;}
+
+/* ── ACTION COLUMN ── */
+.action-cell{min-width:280px;padding:8px 12px !important;white-space:normal !important;}
+.action-wrap{display:flex;flex-direction:column;gap:4px;}
+.action-select{
+  background: var(--ms-white);
+  border: 1px solid var(--ms-grey-300);
+  border-radius: var(--radius-sm);
+  color: var(--tbl-text);
+  font-family: var(--font-sans);
+  font-size: 11px; font-weight: 500;
+  padding: 5px 26px 5px 10px; width: 100%;
+  outline: none; cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out); appearance: none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239E9E9E' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+}
+.action-select:hover{border-color: var(--ms-grey-400);}
+.action-select:focus{border-color: var(--ms-blue); box-shadow: 0 0 0 3px rgba(0,198,209,0.15);}
+.aval-lcc {background:#E6FAFB;border-color:var(--ms-blue);color:var(--ms-blue-deep);font-weight:700;}
+.aval-rec {background:#F0EBFE;border-color:var(--ms-purple);color:#5E45C2;font-weight:700;}
+.aval-adj {background:#E5FBEF;border-color:var(--ms-green);color:var(--ms-green-deep);font-weight:700;}
+.aval-lfd {background:#FFF1E0;border-color:var(--ms-orange);color:#A55A1F;font-weight:700;}
+.aval-rev {background:#FFF8DD;border-color:#E0B400;color:#856B00;font-weight:700;}
+.aval-arm {background:#F8E8FA;border-color:#A85ABF;color:#7C3D8F;font-weight:700;}
+.aval-ing {background:#E5FBF6;border-color:var(--ms-mint);color:#1A8870;font-weight:700;}
+.aval-tkt {background:var(--ms-grey-100);border-color:var(--ms-grey-500);color:var(--ms-dark);font-weight:700;}
+
+.note-input{
+  background: var(--ms-white);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--tbl-text);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  padding: 5px 10px; width: 100%;
+  resize: none; min-height: 26px; max-height: 80px;
+  transition: all var(--dur-fast) var(--ease-out);
+  line-height: 1.45; overflow: hidden;
+}
+.note-input:hover{border-color: var(--ms-grey-300);}
+.note-input:focus{border-color: var(--ms-blue);outline:none;background: #F7FDFE; box-shadow: 0 0 0 3px rgba(0,198,209,0.12);}
+.note-input::placeholder{color:var(--tbl-text3);font-style:italic;}
+.note-input.hv{border-color: var(--ms-grey-200);background:var(--ms-grey-50);}
+.act-badge{
+  background: var(--ms-gradient);
+  color: var(--ms-white);
+  border-radius: var(--radius-pill);
+  font-size: 10px; font-weight: 700;
+  padding: 2px 8px; margin-left: 6px;
+}
+
+/* ── LC (1er/2do LC año) ── */
+.lc-cell{min-width:170px;padding:8px 12px !important;white-space:normal !important;}
+.lc-wrap{display:flex;flex-direction:column;gap:5px;}
+.lc-check{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--tbl-text2);user-select:none;}
+.lc-check input[type=checkbox]{width:13px;height:13px;accent-color:var(--ms-green);cursor:pointer;margin:0;}
+.lc-check.done{color:var(--ms-green-deep);font-weight:700;}
+body.viewer .lc-select{pointer-events:none;opacity:.7;background-color:var(--ms-grey-100)!important;color:var(--ms-grey-700)!important;}
+body.viewer .lc-check input[type=checkbox]{pointer-events:none;}
+</style>
+
+<style id="apps-script-roles">
+.role-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:var(--radius-pill);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-left:14px;font-family:var(--font-sans);}
+.role-pill[data-role="editor"]{background:rgba(14,204,126,.18);color:var(--ms-green);border:1px solid rgba(14,204,126,.45);}
+.role-pill[data-role="viewer"]{background:rgba(255,255,255,.08);color:var(--fg-on-dark-2);border:1px solid rgba(255,255,255,.18);}
+.role-pill[data-role="loading"]{background:rgba(255,255,255,.06);color:var(--fg-on-dark-2);border:1px solid rgba(255,255,255,.12);}
+.role-pill[data-role="denied"]{background:rgba(255,85,81,.18);color:var(--ms-red);border:1px solid rgba(255,85,81,.45);}
+.role-pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor;}
+body.viewer .action-select{pointer-events:none;opacity:.7;background-color:var(--ms-grey-100)!important;color:var(--ms-grey-700)!important;}
+body.viewer .note-input{pointer-events:none;background-color:var(--ms-grey-50)!important;color:var(--ms-grey-700)!important;}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--ms-dark);color:var(--ms-white);padding:10px 18px;border-radius:var(--radius-pill);font:600 12px/1.4 var(--font-sans);box-shadow:var(--shadow-md);opacity:0;transform:translateY(8px);transition:all .25s var(--ease-out);z-index:1000;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.error{background:var(--ms-red);}
+.gate{position:fixed;inset:0;background:var(--bg-1);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;text-align:center;padding:40px;z-index:9999;font-family:var(--font-sans);}
+.gate h2{font:800 var(--fs-32)/1.15 var(--font-sans);color:var(--ms-dark);letter-spacing:var(--ls-tight);}
+.gate p{color:var(--ms-grey-700);max-width:480px;font:400 var(--fs-16)/1.5 var(--font-sans);}
+.gate .em{color:var(--ms-blue-deep);font-weight:600;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <svg class="brand-logo" aria-label="Making Sense" role="img" width="553" height="70" viewBox="0 0 553 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M104.941 50.3931L86.9775 15.9847V54.0935H77V2.29677H90.8225L105.089 30.119L119.355 2.29677H133.191V54.0935H123.024V16.0583L104.941 50.3931Z" fill="white"></path>
+<path d="M153.012 54.7609C148.848 54.7609 145.461 53.6609 142.845 51.4655C140.271 49.3805 138.815 46.2232 138.908 42.9186C138.908 39.2688 140.317 36.4106 143.141 34.3349C145.964 32.2591 149.851 31.2236 154.81 31.2282C158.012 31.2282 161.196 31.7253 164.246 32.7102V29.9487C164.246 27.7257 163.553 26.0458 162.162 24.9135C160.771 23.7813 158.742 23.2152 156.071 23.2152C154.273 23.2382 152.485 23.5006 150.752 23.993C148.529 24.6282 146.357 25.4336 144.254 26.4001L140.557 18.9257C143.376 17.6139 146.32 16.5738 149.338 15.819C152.097 15.1424 154.925 14.7972 157.767 14.788C162.966 14.788 167.015 16.0353 169.912 18.5252C172.81 21.0152 174.256 24.5315 174.261 29.0696V54.0935H164.232V51.4286C162.657 52.5332 160.914 53.3847 159.07 53.9462C157.102 54.5123 155.059 54.7885 153.012 54.7609ZM148.626 42.6977C148.598 44.129 149.333 45.4684 150.558 46.214C151.847 47.0747 153.557 47.5073 155.688 47.5073C157.25 47.5211 158.807 47.3094 160.309 46.8767C161.695 46.4717 163.012 45.8642 164.214 45.068V39.2918C162.957 38.7947 161.645 38.4357 160.309 38.2194C158.895 37.9939 157.467 37.8834 156.039 37.888C153.71 37.888 151.889 38.3207 150.576 39.1813C149.343 39.9223 148.598 41.2617 148.626 42.6977Z" fill="white"></path>
+<path d="M181.475 54.0935V2.29675L191.642 0.0737305V31.8311L208.357 15.5474H219.878L201.744 33.2349L220.997 54.0935H208.001L191.656 36.4842V54.0935H181.475Z" fill="white"></path>
+<path d="M228.506 11.6169C225.285 11.6353 222.66 9.05325 222.637 5.84529C222.619 2.63734 225.211 0.0231104 228.432 9.78403e-05C231.653 -0.0183122 234.278 2.5637 234.301 5.77165C234.311 7.3227 233.696 8.81392 232.596 9.91392C231.529 11.0185 230.045 11.6353 228.506 11.6169ZM233.636 15.5382V54.0935H223.469V15.5382H233.636Z" fill="white"></path>
+<path d="M241.122 54.0935V15.5382H251.289V18.5759C252.754 17.3516 254.427 16.3989 256.23 15.7637C258.134 15.101 260.135 14.7696 262.15 14.788C266.609 14.788 270.279 16.2194 273.148 19.0775C276.018 21.9357 277.456 25.6177 277.456 30.1236V54.0935H267.289V31.5964C267.289 29.1801 266.558 27.2332 265.093 25.7512C263.628 24.2692 261.683 23.5282 259.252 23.5328C257.672 23.5098 256.105 23.8504 254.682 24.5315C253.337 25.1851 252.172 26.1654 251.303 27.3805V54.0751L241.122 54.0935Z" fill="white"></path>
+<path d="M301.963 54.3144C299.319 54.3328 296.699 53.8035 294.273 52.7634C286.989 49.6383 282.29 42.4767 282.345 34.5788C282.331 31.9462 282.863 29.3366 283.907 26.9156C284.905 24.5822 286.342 22.4604 288.14 20.6654C289.947 18.8704 292.096 17.4483 294.458 16.4817C296.93 15.4646 299.583 14.9491 302.258 14.9675C304.139 14.9583 306.006 15.2344 307.804 15.7821C309.546 16.3206 311.21 17.0939 312.744 18.0834V15.5658H322.773V54.0935C322.773 59.1747 321.127 63.096 317.832 65.8575C314.537 68.619 309.796 69.9998 303.603 69.9998C300.719 70.009 297.84 69.7098 295.021 69.1115C292.41 68.5638 289.873 67.6939 287.479 66.5203L291.047 58.604C293.043 59.5889 295.137 60.3713 297.29 60.9328C299.278 61.4483 301.325 61.7107 303.381 61.7107C306.404 61.7107 308.696 61.0571 310.253 59.75C311.811 58.4429 312.592 56.5328 312.596 54.0153V50.8349C311.076 51.9579 309.384 52.8324 307.582 53.4215C305.771 54.0153 303.871 54.319 301.963 54.3144ZM292.378 34.5788C292.322 37.5474 293.492 40.4102 295.613 42.4952C297.679 44.6307 300.548 45.809 303.525 45.7491C305.253 45.7721 306.972 45.4592 308.58 44.8286C310.068 44.2441 311.432 43.3742 312.592 42.2788V27.0905C311.45 25.9721 310.082 25.0976 308.58 24.5361C306.991 23.9194 305.304 23.611 303.599 23.6156C300.627 23.5604 297.757 24.7064 295.65 26.796C293.51 28.8165 292.322 31.6424 292.378 34.5788Z" fill="white"></path>
+<path d="M343.721 45.878L349.891 38.1826C352.488 40.5299 355.432 42.4629 358.62 43.9173C361.421 45.1278 364.443 45.7445 367.498 45.7307C370.719 45.7307 373.298 45.137 375.225 43.9541C377.152 42.7713 378.118 41.1926 378.122 39.2181C378.196 37.5981 377.457 36.047 376.154 35.0759C374.841 34.0909 372.651 33.3499 369.577 32.8575L359.253 31.0809C354.794 30.3399 351.402 28.7842 349.086 26.4185C346.771 24.0528 345.616 20.9922 345.63 17.2411C345.63 12.4085 347.478 8.58379 351.175 5.77165C354.872 2.95951 359.863 1.55114 366.148 1.55574C370.03 1.57415 373.885 2.22311 377.554 3.4796C381.2 4.65784 384.611 6.45742 387.633 8.80471L381.819 16.7993C379.342 14.8432 376.588 13.2599 373.649 12.1001C371.015 11.0968 368.219 10.5813 365.4 10.5813C362.525 10.5813 360.215 11.1106 358.468 12.1738C356.73 13.2323 355.866 14.6545 355.866 16.4265C355.806 17.8579 356.439 19.2294 357.576 20.1085C358.713 20.9968 360.621 21.6365 363.297 22.0323L373.104 23.6616C378.256 24.4993 382.134 26.1378 384.731 28.5817C387.328 31.0257 388.627 34.2474 388.631 38.247C388.631 43.2822 386.64 47.3048 382.651 50.3102C378.663 53.3157 373.367 54.8253 366.754 54.8299C362.544 54.8207 358.371 54.0152 354.461 52.4596C350.51 50.9362 346.868 48.7039 343.721 45.878Z" fill="white"></path>
+<path d="M428.416 49.3069C424.054 53.0073 418.471 54.9726 412.741 54.8299C409.926 54.8483 407.14 54.3236 404.529 53.2742C402.075 52.3031 399.829 50.8717 397.916 49.0583C396.044 47.2633 394.556 45.1094 393.535 42.7299C392.458 40.2445 391.912 37.5566 391.936 34.8504C391.917 32.1671 392.435 29.5068 393.461 27.0261C396.525 19.616 403.808 14.8018 411.858 14.8754C414.483 14.8524 417.08 15.3955 419.474 16.4633C421.776 17.4897 423.846 18.9625 425.565 20.7943C427.321 22.6951 428.685 24.9181 429.581 27.3437C430.565 29.9855 431.055 32.7792 431.028 35.596V38.2608H402.2C402.842 40.6035 404.251 42.6654 406.211 44.1106C408.226 45.6018 410.684 46.3797 413.194 46.329C414.816 46.3382 416.424 46.0667 417.949 45.5144C419.359 45.0173 420.648 44.2349 421.739 43.2131L428.416 49.3069ZM411.627 23.2612C409.437 23.2152 407.302 23.9654 405.619 25.3692C403.891 26.8466 402.671 28.8257 402.13 31.0303H421.078C420.491 28.8579 419.262 26.9064 417.547 25.4428C415.916 24.0068 413.804 23.2198 411.627 23.2382V23.2612Z" fill="white"></path>
+<path d="M436.351 54.0935V15.5382H446.518V18.5759C447.983 17.3516 449.656 16.4035 451.459 15.7637C453.358 15.1102 455.359 14.7834 457.369 14.8018C461.824 14.8018 465.489 16.2332 468.363 19.0913C471.238 21.9495 472.675 25.6315 472.675 30.1374V54.0935H462.508V31.5964C462.508 29.1801 461.778 27.2332 460.318 25.7512C458.853 24.2738 456.912 23.5328 454.481 23.5328C452.9 23.5098 451.338 23.8503 449.915 24.5315C448.566 25.1851 447.406 26.1654 446.532 27.3805V54.0751L436.351 54.0935Z" fill="white"></path>
+<path d="M476.737 49.5048L481.788 42.7713C483.808 44.1198 485.98 45.2244 488.258 46.0667C490.213 46.7663 492.274 47.1299 494.349 47.1391C496.628 47.1391 498.448 46.7709 499.812 46.0299C501.175 45.2889 501.854 44.3039 501.854 43.0659C501.882 42.1361 501.452 41.2525 500.704 40.7002C499.932 40.1064 498.698 39.6876 497.007 39.4437L489.575 38.3345C485.763 37.7407 482.856 36.5165 480.846 34.6525C478.835 32.7884 477.833 30.2985 477.837 27.178C477.74 23.68 479.376 20.357 482.218 18.2951C485.144 16.0767 489.058 14.9675 493.961 14.9675C496.757 14.9629 499.534 15.3725 502.206 16.1871C504.914 17.0156 507.492 18.2261 509.859 19.7771L504.969 26.2943C503.042 25.1575 501.004 24.2324 498.878 23.5328C496.983 22.9252 495.001 22.6123 493.009 22.6123C491.161 22.6123 489.686 22.9575 488.587 23.6478C487.556 24.1863 486.914 25.2495 486.914 26.4093C486.877 27.3667 487.343 28.278 488.143 28.8119C488.956 29.3826 490.306 29.7876 492.191 30.0361L499.622 31.1453C503.384 31.6884 506.295 32.9173 508.352 34.8273C510.39 36.7144 511.513 39.3792 511.434 42.15C511.444 43.9219 511 45.6663 510.136 47.2127C509.253 48.7868 508.052 50.1583 506.605 51.2445C504.997 52.4412 503.181 53.3433 501.254 53.9094C499.063 54.5675 496.78 54.8897 494.493 54.8713C491.151 54.8943 487.819 54.4295 484.612 53.4906C481.751 52.6805 479.08 51.3274 476.737 49.5048Z" fill="white"></path>
+<path d="M550.397 49.3069C546.035 53.0073 540.452 54.9726 534.721 54.8299C531.907 54.8483 529.12 54.3236 526.509 53.2742C524.055 52.3031 521.809 50.8717 519.896 49.0583C518.025 47.2634 516.536 45.1094 515.515 42.7299C514.438 40.2445 513.893 37.5567 513.916 34.8504C513.898 32.1671 514.415 29.5068 515.441 27.0261C518.496 19.6068 525.779 14.788 533.829 14.8524C536.454 14.8294 539.052 15.3725 541.446 16.4403C543.747 17.4667 545.817 18.9395 547.536 20.7713C549.293 22.6721 550.656 24.8951 551.552 27.3207C552.537 29.9625 553.027 32.7562 552.999 35.573V38.2608H524.157C524.799 40.6035 526.209 42.6654 528.168 44.1106C530.183 45.6018 532.642 46.3797 535.151 46.329C536.773 46.3383 538.382 46.0667 539.907 45.5144C541.316 45.0173 542.605 44.2349 543.696 43.2131L550.397 49.3069ZM533.608 23.2612C531.417 23.2152 529.282 23.9654 527.6 25.3692C525.872 26.8466 524.652 28.8257 524.111 31.0303H543.058C542.471 28.8579 541.242 26.9064 539.528 25.4428C537.896 24.0068 535.784 23.2198 533.608 23.2382V23.2612Z" fill="white"></path>
+<path d="M16.804 1.9553C13.5088 3.29112 10.51 5.27232 7.98172 7.78392C5.45341 10.2955 3.44598 13.2875 2.07581 16.5862C0.705636 19.8849 0 23.4247 0 27C0 30.5753 0.705636 34.1151 2.07581 37.4138C3.44598 40.7125 5.45341 43.7045 7.98172 46.2161C10.51 48.7277 13.5088 50.7089 16.804 52.0447C20.0992 53.3805 23.6253 54.0444 27.1774 53.9977C28.7583 53.9977 30.2743 53.3657 31.3921 52.2407C32.5099 51.1156 33.1379 49.5898 33.1379 47.9987C33.1379 46.4077 32.5099 44.8818 31.3921 43.7568C30.2743 42.6318 28.7583 41.9997 27.1774 41.9997C24.2291 42.0007 21.3467 41.1216 18.8949 39.4737C16.443 37.8258 14.5316 35.4831 13.4027 32.7419C12.2738 30.0007 11.9781 26.9842 12.5527 24.0738C13.1273 21.1634 14.5465 18.4898 16.631 16.3913C18.7155 14.2927 21.3715 12.8635 24.2631 12.2843C27.1547 11.705 30.152 12.0018 32.876 13.1372C35.6 14.2725 37.9283 16.1954 39.5664 18.6625C41.2045 21.1297 42.0788 24.0304 42.0788 26.9977C42.0788 28.5887 42.7068 30.1146 43.8246 31.2396C44.9425 32.3647 46.4586 32.9967 48.0394 32.9967C49.6203 32.9967 51.1364 32.3647 52.2542 31.2396C53.372 30.1146 54 28.5887 54 26.9977C54 19.8381 51.174 12.9717 46.1438 7.90907C41.1136 2.84645 34.2912 0.00230039 27.1774 0.00230039C23.6253 -0.0443685 20.0992 0.619476 16.804 1.9553Z" fill="url(#paint0_linear_4_122)"></path>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M54 48C54 51.3137 51.3137 54 48 54C44.6863 54 42 51.3137 42 48C42 44.6863 44.6863 42 48 42C51.3137 42 54 44.6863 54 48Z" fill="#0ECC7E"></path>
+<defs>
+<linearGradient id="paint0_linear_4_122" x1="33.8963" y1="-7.04146" x2="-2.65878" y2="21.6671" gradientUnits="userSpaceOnUse">
+<stop stop-color="#00C6D1"></stop>
+<stop offset="1" stop-color="#0ECC7E"></stop>
+</linearGradient>
+</defs>
+</svg>
+    <div class="brand-divider"></div>
+    <div class="logo-area">
+      <h1>Compensaciones 2026 — MS General</h1>
+      <p>Bamboo Compensaciones · Sueldos</p>
+    </div>
+    <div class="role-pill" data-role="loading" id="role-pill"><span class="dot"></span>Cargando…</div>
+  </div>
+  <div class="search-wrap table-only-filter">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.156a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"></path></svg>
+    <input type="text" id="search" placeholder="Buscar nombre, código…">
+  </div>
+</header>
+
+<div class="dept-bar" id="dept-bar"></div>
+
+<div class="filter-bar">
+  <span class="fl">Mes:</span>
+  <div class="pill-group" id="month-pills"></div>
+  <span class="fl table-only-filter" style="margin-left:8px">Código:</span>
+  <div class="msel table-only-filter" id="code-filter">
+    <button type="button" class="msel-btn" id="code-filter-btn"><span class="msel-label">Todos</span><span class="msel-caret">▾</span></button>
+    <div class="msel-panel" id="code-filter-panel"></div>
+  </div>
+  <span class="fl table-only-filter">Agreement:</span>
+  <div class="msel table-only-filter" id="ag-filter">
+    <button type="button" class="msel-btn" id="ag-filter-btn"><span class="msel-label">Todos</span><span class="msel-caret">▾</span></button>
+    <div class="msel-panel" id="ag-filter-panel"></div>
+  </div>
+  <span class="fl table-only-filter">xM:</span>
+  <div class="msel table-only-filter" id="xm-filter">
+    <button type="button" class="msel-btn" id="xm-filter-btn"><span class="msel-label">Todos</span><span class="msel-caret">▾</span></button>
+    <div class="msel-panel" id="xm-filter-panel"></div>
+  </div>
+  <span class="fl table-only-filter">Banda:</span>
+  <div class="msel table-only-filter" id="gap-filter">
+    <button type="button" class="msel-btn" id="gap-filter-btn"><span class="msel-label">Todos</span><span class="msel-caret">▾</span></button>
+    <div class="msel-panel" id="gap-filter-panel"></div>
+  </div>
+  <span class="fl metrics-only-filter">Departamento:</span>
+  <select class="metrics-only-filter" id="metrics-dept-filter"></select>
+</div>
+
+<div class="stats-bar" id="stats"></div>
+
+<div class="table-section">
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th data-col="Last name, First name" style="min-width:160px">Nombre<span class="si">↕</span></th>
+        <th data-col="Hire Date" style="min-width:90px">Ingreso<span class="si">↕</span></th>
+        <th data-col="Code (Level)" style="min-width:80px">Código<span class="si">↕</span></th>
+        <th data-col="Agreement" style="min-width:90px">Agreement<span class="si">↕</span></th>
+        <th data-col="Bill" style="min-width:50px">Bill<span class="si">↕</span></th>
+        <th data-col="PayRoll" style="min-width:90px">PayRoll<span class="si">↕</span></th>
+        <th data-col="Costo USD/H" style="min-width:80px">USD/H<span class="si">↕</span></th>
+        <th data-col="Banda Min" style="min-width:60px">B. Min<span class="si">↕</span></th>
+        <th data-col="Banda Med" style="min-width:60px">B. Med<span class="si">↕</span></th>
+        <th data-col="Banda Max" style="min-width:60px">B. Max<span class="si">↕</span></th>
+        <th data-col="GAP BANDA" style="min-width:70px">GAP %<span class="si">↕</span></th>
+        <th data-col="% GAP Banda" style="min-width:130px">Estado Banda<span class="si">↕</span></th>
+        <th data-col="Ultimo Cambio Proactivo" style="min-width:100px">Últ. Cambio<span class="si">↕</span></th>
+        <th data-col="Antigüedad" style="min-width:50px">Ant.<span class="si">↕</span></th>
+        <th data-col="Account / Proyecto" style="min-width:140px">Cuenta/Proyecto<span class="si">↕</span></th>
+        <th data-col="Fecha ultimo LC" style="min-width:100px">Fecha Últ. LC<span class="si">↕</span></th>
+        <th data-col="Aging LC (meses)" style="min-width:80px">Aging LC<span class="si">↕</span></th>
+        <th data-col="Status LC" style="min-width:110px">Status LC<span class="si">↕</span></th>
+        <th style="cursor:default;min-width:280px">Acción / Notas<span id="act-badge"></span></th>
+        <th data-col="Ajuste ultimo año" style="min-width:160px">Ajuste último año<span class="si">↕</span></th>
+        <th data-col="xM" style="min-width:120px">xM<span class="si">↕</span></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div id="empty" class="empty-state" style="display:none">Sin resultados para los filtros seleccionados</div>
+  </div>
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<div class="metrics-panel" id="metrics-section">
+  <div class="metrics-summary" id="metrics-summary"></div>
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <h3>Distribución en Banda</h3>
+      <div class="metric-body" id="metrics-banda-body"></div>
+    </div>
+    <div class="metric-card">
+      <h3>Ajuste Último Año</h3>
+      <div class="metric-body" id="metrics-ajuste-body"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let ALL_DATA = []; // cargado dinámicamente desde el sheet
+const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+let MONTHS = [];
+let ML = {};
+function derivarMeses() {
+  const set = [...new Set(ALL_DATA.map(d=>d.Month).filter(Boolean))].sort();
+  MONTHS = set;
+  ML = {};
+  set.forEach(m => {
+    const n = parseInt(m.split('-')[1],10) - 1;
+    ML[m] = MONTH_NAMES[n] || m;
+  });
+}
+const PS=100;
+const METRICS_TAB='__metricas__';
+let activeMonth='2026-01',activeDept='',sortCol='Code (Level)',sortDir=1,page=1,filtered=[],metricsDept='';
+
+// ──────── Backend bridge (Apps Script) ────────
+let USER_ROLE='loading';            // 'editor' | 'viewer' | 'denied'
+let USER_EMAIL='';
+const ACT_MAP={};                   // rkey -> {action, note, lc1, lc1com, lc2, lc2com}
+function blankEntry(){return {action:'',note:'',lc1:'',lc1com:false,lc2:'',lc2com:false};}
+
+function rkey(d){return d.Month+'|'+(d['Last name, First name']||d['Employee #']);}
+function getNote(d){return (ACT_MAP[rkey(d)]||{}).note||'';}
+
+function setNote(d,v){
+  if(USER_ROLE!=='editor')return;
+  const k=rkey(d);
+  ACT_MAP[k]=ACT_MAP[k]||blankEntry();
+  ACT_MAP[k].note=v;
+  persist(d,k);
+}
+
+function persist(d,k){
+  const e=ACT_MAP[k]||blankEntry();
+  google.script.run
+    .withSuccessHandler(()=>toast('Guardado ✓'))
+    .withFailureHandler(err=>toast('Error al guardar: '+(err&&err.message||err),true))
+    .saveAction(d.Month, d['Last name, First name']||d['Employee #'], e.action, e.note);
+}
+
+function countActions(){let n=0;for(const k in ACT_MAP)if(ACT_MAP[k]&&ACT_MAP[k].action)n++;return n;}
+function updateBadge(){const n=countActions();document.getElementById('act-badge').innerHTML=n?` <span class="act-badge">${n}</span>`:'';}
+
+// ── Toast helper
+let toastT;
+function toast(msg, isError){
+  const el=document.getElementById('toast');if(!el)return;
+  el.textContent=msg;
+  el.classList.toggle('error',!!isError);
+  el.classList.add('show');
+  clearTimeout(toastT);
+  toastT=setTimeout(()=>el.classList.remove('show'), isError?4500:1500);
+}
+
+// ── Role UI
+function setRole(role, email){
+  USER_ROLE=role; USER_EMAIL=email||'';
+  const pill=document.getElementById('role-pill');
+  pill.dataset.role=role;
+  const label=role==='editor'?'Editor':role==='viewer'?'Solo lectura':role==='denied'?'Sin acceso':'Cargando…';
+  pill.innerHTML=`<span class="dot"></span>${label}`;
+  pill.title=email||'';
+  document.body.classList.toggle('viewer', role==='viewer');
+}
+function showDeniedGate(email){
+  const g=document.createElement('div');
+  g.className='gate';
+  g.innerHTML=`<h2>Sin acceso al reporte</h2><p>Tu cuenta <span class="em">${email||'(desconocida)'}</span> no figura en la lista de personas habilitadas para ver Compensaciones 2026 — General.<br><br>Pedile acceso a <span class="em">aprato@makingsense.com</span> o <span class="em">talentcare@makingsense.com</span>.</p>`;
+  document.body.appendChild(g);
+}
+
+// ── Pestañas de Departamento (reemplaza al viejo filtro por dropdown) ──
+// "Métricas" es una pestaña sintética más (no viene de d.Department): dentro de ella
+// se ven solo los filtros de Mes y Departamento, y en vez de la tabla se muestran las
+// métricas agregadas (Distribución en Banda, Ajuste Último Año).
+function initDeptTabs(){
+  const bar=document.getElementById('dept-bar');
+  const depts=[...new Set(ALL_DATA.map(d=>d.Department).filter(Boolean))].sort();
+  if(!depts.includes(activeDept) && activeDept!==METRICS_TAB) activeDept=depts[0]||'';
+  const tabs=depts.map(dp=>`<button type="button" class="dept-tab${dp===activeDept?' active':''}" data-dept="${dp}" onclick="selectDept('${dp.replace(/'/g,"\\'")}')">${dp}</button>`).join('');
+  const metricsTab=`<button type="button" class="dept-tab dept-tab-metrics${activeDept===METRICS_TAB?' active':''}" data-dept="${METRICS_TAB}" onclick="selectDept('${METRICS_TAB}')">📊 Métricas</button>`;
+  bar.innerHTML=tabs+metricsTab;
+  populateMetricsDeptFilter(depts);
+}
+function populateMetricsDeptFilter(depts){
+  const sel=document.getElementById('metrics-dept-filter');
+  if(!sel)return;
+  const list=depts||[...new Set(ALL_DATA.map(d=>d.Department).filter(Boolean))].sort();
+  if(!list.includes(metricsDept)) metricsDept='';
+  sel.innerHTML=`<option value="">Todos</option>`+list.map(dp=>`<option value="${dp}"${dp===metricsDept?' selected':''}>${dp}</option>`).join('');
+}
+document.getElementById('metrics-dept-filter').addEventListener('change',function(){
+  metricsDept=this.value;
+  applyFilters();
+});
+window.selectDept=function(dp){
+  activeDept=dp;
+  document.querySelectorAll('#dept-bar .dept-tab').forEach(b=>b.classList.toggle('active', b.dataset.dept===dp));
+  applyFilters();
+};
+
+// ── Filtros multi-select genéricos (checkboxes): Código, Agreement, xM, Banda ──
+const MSEL_LABELS={
+  gap:{
+    'En banda':'En banda','Encima del 0% y 5%':'Encima 0-5%','Encima del 5% y 15%':'Encima 5-15%',
+    'Encima del 15%':'Encima 15%+','Debajo de 0% a -5%':'Debajo 0-5%','Debajo de -5% y -15%':'Debajo 5-15%',
+    'Debajo de -15%':'Debajo -15%+'
+  }
+};
+const MSEL_CONFIGS={
+  code:   { getField:d=>d['Code (Level)'], staticOptions:null, noun:'códigos' },
+  ag:     { getField:d=>d.Agreement, staticOptions:['Contractor','Empleado','Plus Fijo'], noun:'agreements' },
+  xm:     { getField:d=>d.xM, staticOptions:null, noun:'xM' },
+  gap:    { getField:d=>d['% GAP Banda'], staticOptions:['En banda','Encima del 0% y 5%','Encima del 5% y 15%','Encima del 15%','Debajo de 0% a -5%','Debajo de -5% y -15%','Debajo de -15%'], noun:'bandas' },
+};
+const mselSelected={code:new Set(),ag:new Set(),xm:new Set(),gap:new Set()};
+
+function mselOptions(key){
+  const cfg=MSEL_CONFIGS[key];
+  return cfg.staticOptions ? cfg.staticOptions.slice() : [...new Set(ALL_DATA.map(cfg.getField).filter(Boolean))].sort();
+}
+function populateMsel(key){
+  const cfg=MSEL_CONFIGS[key];
+  const panel=document.getElementById(key+'-filter-panel');
+  const options=mselOptions(key);
+  mselSelected[key]=new Set([...mselSelected[key]].filter(v=>options.includes(v)));
+  const labels=MSEL_LABELS[key]||{};
+  panel.innerHTML=`<div class="msel-actions"><button type="button" onclick="selectAllMsel('${key}')">Todos</button><button type="button" onclick="clearMsel('${key}')">Limpiar</button></div>`+
+    options.map(o=>`<label class="msel-item"><input type="checkbox" value="${o}" ${mselSelected[key].has(o)?'checked':''} onchange="toggleMsel('${key}','${String(o).replace(/'/g,"\\'")}',this.checked)">${labels[o]||o}</label>`).join('');
+  updateMselLabel(key);
+}
+window.toggleMsel=function(key,val,checked){
+  if(checked)mselSelected[key].add(val);else mselSelected[key].delete(val);
+  updateMselLabel(key);
+  applyFilters();
+};
+window.selectAllMsel=function(key){
+  mselSelected[key]=new Set(mselOptions(key));
+  populateMsel(key);
+  applyFilters();
+};
+window.clearMsel=function(key){
+  mselSelected[key].clear();
+  populateMsel(key);
+  applyFilters();
+};
+function updateMselLabel(key){
+  const cfg=MSEL_CONFIGS[key];
+  const labels=MSEL_LABELS[key]||{};
+  const lbl=document.querySelector('#'+key+'-filter-btn .msel-label');
+  const n=mselSelected[key].size;
+  lbl.textContent = n===0?'Todos':(n===1?(labels[[...mselSelected[key]][0]]||[...mselSelected[key]][0]):`${n} ${cfg.noun}`);
+}
+function populateAllMsel(){ Object.keys(MSEL_CONFIGS).forEach(populateMsel); }
+populateAllMsel();
+Object.keys(MSEL_CONFIGS).forEach(key=>{
+  document.getElementById(key+'-filter-btn').addEventListener('click',function(e){
+    e.stopPropagation();
+    document.querySelectorAll('.msel.open').forEach(m=>{ if(m.id!==key+'-filter') m.classList.remove('open'); });
+    document.getElementById(key+'-filter').classList.toggle('open');
+  });
+});
+document.addEventListener('click',function(e){
+  document.querySelectorAll('.msel').forEach(m=>{ if(!m.contains(e.target)) m.classList.remove('open'); });
+});
+
+// Pills
+const pillG=document.getElementById('month-pills');
+function initPills(){
+  const pillG=document.getElementById('month-pills');
+  pillG.innerHTML='';
+  MONTHS.forEach(m=>{
+    const b=document.createElement('button');
+    b.className='pill'+(m===activeMonth?' active':'');
+    b.textContent=ML[m]||m;
+    b.onclick=()=>{activeMonth=m;pillG.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));b.classList.add('active');applyFilters();};
+    pillG.appendChild(b);
+  });
+  // Si el mes activo no existe en los nuevos datos, usar el ultimo
+  if(MONTHS.length && !MONTHS.includes(activeMonth)){
+    activeMonth=MONTHS[MONTHS.length-1];
+    const pills=pillG.querySelectorAll('.pill');
+    if(pills.length) pills[pills.length-1].classList.add('active');
+  }
+}
+initPills();
+
+// Sort
+document.querySelectorAll('thead th[data-col]').forEach(th=>{
+  th.addEventListener('click',()=>{
+    const c=th.dataset.col;
+    if(sortCol===c)sortDir*=-1;else{sortCol=c;sortDir=1;}
+    document.querySelectorAll('thead th').forEach(h=>h.classList.remove('sorted'));
+    th.classList.add('sorted');
+    th.querySelector('.si').textContent=sortDir===1?'↑':'↓';
+    renderTable();
+  });
+});
+
+document.getElementById('search').addEventListener('input',applyFilters);
+
+function updateViewMode(){
+  document.body.classList.toggle('metrics-mode', activeDept===METRICS_TAB);
+}
+
+function applyFilters(){
+  updateViewMode();
+  if(activeDept===METRICS_TAB){ renderMetrics(); return; }
+  const q=document.getElementById('search').value.toLowerCase().trim();
+  filtered=ALL_DATA.filter(d=>{
+    if(d.Month!==activeMonth)return false;
+    if(activeDept&&d.Department!==activeDept)return false;
+    if(mselSelected.code.size&&!mselSelected.code.has(d['Code (Level)']))return false;
+    if(mselSelected.ag.size&&!mselSelected.ag.has(d.Agreement))return false;
+    if(mselSelected.xm.size&&!mselSelected.xm.has(d.xM))return false;
+    if(mselSelected.gap.size&&!mselSelected.gap.has(d['% GAP Banda']))return false;
+    if(q){const h=[d['Last name, First name'],d.Department,d['Code (Level)'],d.xM,d['New Code']].join(' ').toLowerCase();if(!h.includes(q))return false;}
+    return true;
+  });
+  page=1;renderStats();renderTable();renderPag();
+}
+
+// ── Métricas (solapa "📊 Métricas") ──────────────────────────────────
+// Distribución en Banda: usa "% GAP Banda" (mismas 7 categorías del filtro Banda).
+// Ajuste Último Año: usa "Ajuste ultimo año" (4 categorías fijas, ver Procedimiento).
+const GAP_METRIC_ORDER=['Debajo de -15%','Debajo de -5% y -15%','Debajo de 0% a -5%','En banda','Encima del 0% y 5%','Encima del 5% y 15%','Encima del 15%'];
+function gapMetricColor(v){
+  if(v==='En banda')return'gg';
+  if(v==='Encima del 15%'||v==='Debajo de -15%')return'gr';
+  if(v==='Encima del 5% y 15%'||v==='Debajo de -5% y -15%')return'go';
+  return'gy';
+}
+const AJUSTE_METRIC_ORDER=['Ajuste en último año','Ingreso del último año','Ajuste hace mas de 1 año','Sin ajuste desde ingreso'];
+const AJUSTE_METRIC_COLOR={
+  'Ajuste en último año':'gg',
+  'Ingreso del último año':'gy',
+  'Ajuste hace mas de 1 año':'go',
+  'Sin ajuste desde ingreso':'gr',
+};
+
+function metricsFilteredData(){
+  return ALL_DATA.filter(d=>{
+    if(d.Month!==activeMonth)return false;
+    if(metricsDept&&d.Department!==metricsDept)return false;
+    return true;
+  });
+}
+
+function metricBars(data,field,order,colorFn,labelFn){
+  const total=data.length;
+  const counts={};
+  order.forEach(k=>counts[k]=0);
+  let sinDato=0;
+  data.forEach(d=>{
+    const v=d[field];
+    if(v&&Object.prototype.hasOwnProperty.call(counts,v))counts[v]++;
+    else sinDato++;
+  });
+  const rows=order.map(k=>({label:labelFn(k),count:counts[k],cls:'metric-fill-'+colorFn(k)}));
+  rows.push({label:'Sin dato',count:sinDato,cls:'metric-fill-neutral'});
+  return rows.map(r=>{
+    const pct=total?(r.count/total*100):0;
+    return `<div class="metric-row">
+      <div class="metric-label">${r.label}</div>
+      <div class="metric-bar-track"><div class="metric-bar-fill ${r.cls}" style="width:${pct.toFixed(1)}%"></div></div>
+      <div class="metric-count">${r.count} <span class="metric-pct">(${pct.toFixed(1)}%)</span></div>
+    </div>`;
+  }).join('');
+}
+
+function renderMetrics(){
+  const data=metricsFilteredData();
+  const total=data.length;
+  const mesLbl=ML[activeMonth]||activeMonth;
+  const deptLbl=metricsDept||'Todos los departamentos';
+  document.getElementById('metrics-summary').innerHTML=`<strong>${total}</strong> personas — ${mesLbl} — ${deptLbl}`;
+  if(!total){
+    document.getElementById('metrics-banda-body').innerHTML='<div class="metric-empty">Sin datos para este mes/departamento</div>';
+    document.getElementById('metrics-ajuste-body').innerHTML='<div class="metric-empty">Sin datos para este mes/departamento</div>';
+    return;
+  }
+  document.getElementById('metrics-banda-body').innerHTML=metricBars(data,'% GAP Banda',GAP_METRIC_ORDER,gapMetricColor,k=>MSEL_LABELS.gap[k]||k);
+  document.getElementById('metrics-ajuste-body').innerHTML=metricBars(data,'Ajuste ultimo año',AJUSTE_METRIC_ORDER,k=>AJUSTE_METRIC_COLOR[k],k=>k);
+}
+
+function renderStats(){
+  const t=filtered.length;
+  const eb=filtered.filter(d=>d['% GAP Banda']==='En banda').length;
+  const ab=filtered.filter(d=>(d['% GAP Banda']||'').startsWith('Encima')).length;
+  const be=filtered.filter(d=>(d['% GAP Banda']||'').startsWith('Debajo')).length;
+  const co=filtered.filter(d=>d.Agreement==='Contractor').length;
+  const pf=filtered.filter(d=>d.Agreement==='Plus Fijo').length;
+  const emp=filtered.filter(d=>d.Agreement==='Empleado').length;
+  const cs=filtered.map(d=>parseFloat(d['Costo USD/H'])).filter(n=>!isNaN(n));
+  const avg=cs.length?(cs.reduce((a,b)=>a+b,0)/cs.length).toFixed(1):'—';
+  const costoNivelar=filtered.reduce((acc,d)=>{
+    if(!(d['% GAP Banda']||'').startsWith('Debajo'))return acc;
+    const costo=parseFloat(d['Costo USD/H']), bmin=parseFloat(d['Banda Min']);
+    if(isNaN(costo)||isNaN(bmin))return acc;
+    const diff=bmin-costo;
+    return acc+(diff>0?diff:0);
+  },0);
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><div class="stat-v">${t}</div><div class="stat-l">Personas</div></div>
+    <div class="stat"><div class="stat-v green">${eb}</div><div class="stat-l">En banda</div></div>
+    <div class="stat"><div class="stat-v red">${ab} <span style="font-size:11px;font-weight:700;opacity:.7">↑</span></div><div class="stat-l">Encima banda</div></div>
+    <div class="stat"><div class="stat-v amber">${be} <span style="font-size:11px;font-weight:700;opacity:.7">↓</span></div><div class="stat-l">Debajo banda</div></div>
+    <div class="stat"><div class="stat-v solid-dark">${co}</div><div class="stat-l">Contractors</div></div>
+    <div class="stat"><div class="stat-v solid-dark">${pf}</div><div class="stat-l">Plus Fijo</div></div>
+    <div class="stat"><div class="stat-v solid-dark">${emp}</div><div class="stat-l">Empleados</div></div>
+    <div class="stat"><div class="stat-v amber">$${avg}</div><div class="stat-l">Costo prom USD/H</div></div>
+    <div class="stat"><div class="stat-v purple">$${costoNivelar.toFixed(1)}</div><div class="stat-l">Costo/h nivelar debajo banda</div></div>`;
+}
+
+// GAP color class (shared for pill and numeric)
+function gc(v){
+  if(!v)return'';
+  if(v==='En banda')return'gg';
+  if(v.startsWith('Encima del 15%'))return'gr';
+  if(v.startsWith('Debajo de -15%')||v.startsWith('Debajo de -5%'))return'go'; // watch order
+  if(v.startsWith('Debajo de -5% y -15%'))return'go';
+  if(v.startsWith('Encima del 5%'))return'go';
+  if(v.startsWith('Debajo de 0%'))return'gy';
+  if(v.startsWith('Encima del 0%'))return'gy';
+  return'gy';
+}
+
+function badge(v){if(!v)return'';return`<span class="bdg ${v==='Contractor'?'bdg-c':v==='Empleado'?'bdg-e':'bdg-p'}">${v}</span>`;}
+function fmtDate(v){
+  if(v===''||v==null)return'';
+  const s=String(v).trim();
+  // ISO with time: 2024-09-23 00:00:00 -> 23/09/2024
+  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T].*)?$/);
+  if(m)return `${m[3]}/${m[2]}/${m[1]}`;
+  // Already DD/MM/YYYY
+  m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m)return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${m[3]}`;
+  // Excel serial date number
+  if(/^\d{4,6}$/.test(s)){
+    const days=parseInt(s,10);
+    const epoch=new Date(Date.UTC(1899,11,30));
+    const dt=new Date(epoch.getTime()+days*86400000);
+    const dd=String(dt.getUTCDate()).padStart(2,'0');
+    const mm=String(dt.getUTCMonth()+1).padStart(2,'0');
+    return `${dd}/${mm}/${dt.getUTCFullYear()}`;
+  }
+  return s;
+}
+function dash(v){return(v===''||v==null)?`<span style="color:var(--tbl-text3)">—</span>`:String(v);}
+// Aging LC: paleta fija por rango (1-4 verde, 5-6 amarillo, 7+ rojo)
+function agingLcBadge(v){
+  if(v===''||v==null)return`<span style="color:var(--tbl-text3)">—</span>`;
+  const n=parseFloat(v);
+  if(isNaN(n))return String(v);
+  const cls = n<=4 ? 'stlc-rfd' : n<=6 ? 'stlc-building' : 'stlc-red';
+  return`<span class="stlc ${cls}">${v}</span>`;
+}
+// Status LC: paleta fija (igual que Estado Banda), no depende del color de la celda origen
+const STATUS_LC_CLASS={
+  'not started':'stlc-notstarted',
+  'building':'stlc-building',
+  'reviewed':'stlc-reviewed',
+  'ready for discussion':'stlc-rfd',
+  'ready for communication':'stlc-rfc',
+  'communicated':'stlc-communicated',
+};
+function statusLcBadge(v){
+  if(v===''||v==null)return`<span style="color:var(--tbl-text3)">—</span>`;
+  const cls=STATUS_LC_CLASS[String(v).trim().toLowerCase()];
+  return`<span class="stlc ${cls||''}"${cls?'':' style="background:var(--ms-grey-100);color:var(--ms-grey-700)"'}>${v}</span>`;
+}
+function num(v,dec=1){if(v===''||v==null)return`<span style="color:var(--tbl-text3)">—</span>`;const n=parseFloat(v);return isNaN(n)?v:n.toFixed(dec);}
+
+function fmtGapNum(v){
+  if(v===''||v==null)return`<span style="color:var(--tbl-text3)">—</span>`;
+  if(v==='ok')return`<span class="gap-num gg">ok</span>`;
+  const n=parseFloat(v);
+  if(isNaN(n))return`<span style="color:var(--tbl-text3)">—</span>`;
+  const pct=(n*100).toFixed(1)+'%';
+  // Determine class by value
+  let cls='gn';
+  if(n===0)cls='gg';
+  else if(Math.abs(n)<=0.05)cls='gy';
+  else if(Math.abs(n)<=0.15)cls='go';
+  else cls='gr';
+  // positive = encima, negative = debajo — both go same color scale
+  return`<span class="gap-num ${cls}">${n>=0?'+':''}${pct}</span>`;
+}
+
+function renderTable(){
+  const cmp=(va,vb)=>{
+    const na=parseFloat(va),nb=parseFloat(vb);
+    if(!isNaN(na)&&!isNaN(nb))return na-nb;
+    return String(va||'').localeCompare(String(vb||''),'es',{sensitivity:'base'});
+  };
+  const s=[...filtered].sort((a,b)=>{
+    const p=cmp(a[sortCol],b[sortCol])*sortDir;
+    if(p!==0)return p;
+    // tiebreakers (always ascending): Code (Level) → Agreement → Name
+    if(sortCol!=='Code (Level)'){const r=cmp(a['Code (Level)'],b['Code (Level)']);if(r!==0)return r;}
+    if(sortCol!=='Agreement'){const r=cmp(a['Agreement'],b['Agreement']);if(r!==0)return r;}
+    if(sortCol!=='Last name, First name')return cmp(a['Last name, First name'],b['Last name, First name']);
+    return 0;
+  });
+  const slice=s.slice((page-1)*PS, page*PS);
+  const tb=document.getElementById('tbody');
+  if(!slice.length){tb.innerHTML='';document.getElementById('empty').style.display='block';return;}
+  document.getElementById('empty').style.display='none';
+  window.fMap={};
+  slice.forEach(d=>window.fMap[rkey(d)]=d);
+
+  tb.innerHTML=slice.map(d=>{
+    const note=getNote(d);
+    const k=rkey(d);
+    // Antigüedad: show 1 decimal if float, integer if whole
+    const ant=d['Antigüedad']!==''&&d['Antigüedad']!=null?(parseFloat(d['Antigüedad'])).toFixed(1)+'y':'—';
+    return`<tr${d['Caso Abierto']?' class="row-caso"':''}>
+      <td><strong>${d['Last name, First name']||'—'}</strong></td>
+      <td class="mono" style="color:var(--tbl-text2);font-size:10.5px">${fmtDate(d['Hire Date'])||'<span style="color:var(--tbl-text3)">—</span>'}</td>
+      <td class="mono">${dash(d['Code (Level)'])}</td>
+      <td>${badge(d.Agreement)}</td>
+      <td class="mono">${num(d.Bill)}</td>
+      <td class="mono">${d.PayRoll!==''&&d.PayRoll!=null?parseFloat(d.PayRoll).toLocaleString('es-AR',{maximumFractionDigits:0}):'<span style="color:var(--tbl-text3)">—</span>'}</td>
+      <td class="mono" style="color:var(--ms-blue-deep);font-weight:700">$${num(d['Costo USD/H'])}</td>
+      <td class="mono">${num(d['Banda Min'])}</td>
+      <td class="mono">${num(d['Banda Med'])}</td>
+      <td class="mono">${num(d['Banda Max'])}</td>
+      <td>${fmtGapNum(d['GAP BANDA'])}</td>
+      <td>${d['% GAP Banda']?`<span class="gp ${gc(d['% GAP Banda'])}">${d['% GAP Banda']}</span>`:'<span style="color:var(--tbl-text3)">—</span>'}</td>
+      <td class="mono" style="color:var(--tbl-text2);font-size:10.5px">${dash(d['Ultimo Cambio Proactivo'])}</td>
+      <td class="mono">${ant}</td>
+      <td style="color:var(--tbl-text2);font-size:11px">${dash(d['Account / Proyecto'])}</td>
+      <td class="mono" style="color:var(--tbl-text2);font-size:10.5px">${fmtDate(d['Fecha ultimo LC'])||'<span style="color:var(--tbl-text3)">—</span>'}</td>
+      <td class="mono">${agingLcBadge(d['Aging LC (meses)'])}</td>
+      <td>${statusLcBadge(d['Status LC'])}</td>
+      <td class="action-cell">
+        <div class="action-wrap">
+          <textarea class="note-input${note?' hv':''}" ${USER_ROLE!=='editor'?'readonly':''} placeholder="Notas…" onblur="saveNote(this,'${k}')" oninput="ar(this)">${note}</textarea>
+        </div>
+      </td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;color:var(--tbl-text2);font-size:11px" title="${d['Ajuste ultimo año']||''}">${dash(d['Ajuste ultimo año'])}</td>
+      <td style="color:var(--tbl-text2);font-size:11px">${dash(d.xM)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPag(){
+  const total=filtered.length;const pages=Math.ceil(total/PS);
+  const el=document.getElementById('pagination');
+  if(pages<=1){el.innerHTML='';return;}
+  let h=`<button class="pb" ${page===1?'disabled':''} onclick="gp(${page-1})">‹</button>`;
+  for(let i=1;i<=pages;i++){
+    if(i===1||i===pages||Math.abs(i-page)<=1)h+=`<button class="pb${i===page?' active':''}" onclick="gp(${i})">${i}</button>`;
+    else if(Math.abs(i-page)===2)h+=`<span class="pi">…</span>`;
+  }
+  h+=`<button class="pb" ${page===pages?'disabled':''} onclick="gp(${page+1})">›</button>`;
+  h+=`<span class="pi">${total} registros · pág ${page}/${pages}</span>`;
+  el.innerHTML=h;
+}
+
+window.gp=p=>{page=p;renderTable();renderPag();window.scrollTo({top:0,behavior:'smooth'});};
+window.saveNote=function(el,k){const d=window.fMap[k];if(!d)return;setNote(d,el.value);el.classList.toggle('hv',!!el.value.trim());};
+window.ar=function(el){el.style.minHeight='24px';el.style.minHeight=el.scrollHeight+'px';};
+
+// ── Bootstrap from Apps Script backend
+google.script.run
+  .withSuccessHandler(function(payload){
+    setRole(payload.role, payload.email);
+    if(payload.role==='denied'){ showDeniedGate(payload.email); return; }
+    ALL_DATA = (payload.data || []);
+    derivarMeses();
+    initPills();
+    initDeptTabs();
+    populateAllMsel();
+    (payload.actions||[]).forEach(function(r){
+      const k=r.Mes+'|'+r.Nombre;
+      ACT_MAP[k]={
+        action:r.Accion||'', note:r.Nota||'',
+        lc1:r.LC1||'', lc1com:!!r.LC1Comunicado,
+        lc2:r.LC2||'', lc2com:!!r.LC2Comunicado,
+      };
+    });
+    updateBadge();
+    const th=document.querySelector('thead th[data-col="Code (Level)"]');
+    if(th){th.classList.add('sorted');th.querySelector('.si').textContent='↑';}
+    applyFilters();
+  })
+  .withFailureHandler(function(err){
+    toast('No se pudo conectar al backend: '+(err&&err.message||err), true);
+    setRole('viewer');
+    const th=document.querySelector('thead th[data-col="Code (Level)"]');
+    if(th){th.classList.add('sorted');th.querySelector('.si').textContent='↑';}
+    applyFilters();
+  })
+  .getInitialData();
+</script>
+<div id="toast" class="toast"></div>
+</body>
+</html>
