@@ -36,6 +36,9 @@ var EXCLUDED_EMPLOYEES = [
   'Peña Pereira Luis',
   'Raimondi Juan',
   'Beherengaray Calvo Gaston',
+  'Dos Reis German',
+  'Antonelli Ignacio',
+  'Debert Alexander',
 ];
 
 // ════════════════════════════════════════════════════════════════════
