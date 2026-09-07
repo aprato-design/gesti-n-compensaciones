@@ -86,7 +86,7 @@ PARTTIME_FACTOR_BY_EMAIL = {
 SENIORITY_OVERRIDE_BY_EMAIL = {
     'vmunoz@makingsense.com':     ('Executive assistant', '08'),
     'nlenkovich@makingsense.com': ('FinSsrAdv', '05'),
-    'fflorez@makingsense.com':    ('MKTHoD', 10),
+    'fflorez@makingsense.com':    ('MKTHoD', '10'),
     'sgavilan@makingsense.com':   ('DevSr2', '08'),
 }
 
@@ -560,6 +560,57 @@ def append_rows(service, spreadsheet_id, rows, dry_run=False):
     print(f'    {len(rows)} filas agregadas.')
 
 
+def fix_seniority_overrides(service, spreadsheet_id, dry_run=False):
+    """SENIORITY_OVERRIDE_BY_EMAIL escribe texto (ej. '08'), pero append_rows() usa
+    valueInputOption=USER_ENTERED para toda la fila (lo necesitan las fechas, que deben
+    auto-parsearse a Date) — Sheets interpreta un string puramente numérico como si el
+    usuario lo hubiera tipeado, y lo convierte a número, perdiendo el cero a la izquierda.
+    Corre después de escribir el mes: relee la columna Seniority de TODAS las filas de las
+    personas con override cuyo Código coincida con el esperado, y las re-escribe con
+    valueInputOption=RAW (no parsea, queda texto literal) si no están ya correctas. Barre
+    todo el histórico (no solo el mes nuevo) para que también quede prolijo el texto viejo
+    que haya calculado mal calc_seniority() antes de que existiera el override."""
+    if not SENIORITY_OVERRIDE_BY_EMAIL:
+        return
+    resp = service.spreadsheets().values().get(
+        spreadsheetId=spreadsheet_id,
+        range="'Bamboo Compensaciones - Sueldos'!A1:AJ20000",
+        valueRenderOption='UNFORMATTED_VALUE',
+    ).execute()
+    rows = resp.get('values', [])
+    if not rows:
+        return
+    headers = rows[0]
+    i_email = headers.index('Employee #')
+    i_code  = headers.index('Code (Level)')
+    i_sen   = headers.index('Seniority')
+
+    updates = []
+    for idx, row in enumerate(rows[1:], start=2):
+        email = str(row[i_email]).lower().strip() if i_email < len(row) else ''
+        override = SENIORITY_OVERRIDE_BY_EMAIL.get(email)
+        if not override:
+            continue
+        expected_code, fixed_level = override
+        code = row[i_code] if i_code < len(row) else ''
+        if code != expected_code:
+            continue
+        current = row[i_sen] if i_sen < len(row) else ''
+        if current == fixed_level and isinstance(current, str):
+            continue  # ya está correcto (texto, mismo valor)
+        updates.append({'range': f"'Bamboo Compensaciones - Sueldos'!J{idx}", 'values': [[fixed_level]]})
+
+    if not updates:
+        print('    Seniority overrides: sin cambios (ya estaba todo correcto).')
+        return
+    print(f'    Seniority overrides: corrigiendo {len(updates)} celdas...')
+    if not dry_run:
+        service.spreadsheets().values().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body={'valueInputOption': 'RAW', 'data': updates},
+        ).execute()
+
+
 def add_pivot(service, spreadsheet_id, month_name, month_date_str, dry_run=False):
     """Creates a pivot table sourcing from Bamboo Compensaciones - Sueldos, filtered by month."""
     if dry_run:
@@ -711,6 +762,7 @@ def main():
     # ── 9. Escribir en General (todas las filas + Movimiento) ─────────────────
     print('\nActualizando General...')
     append_rows(service, SPREADSHEET_IDS['General'], all_rows_with_mov, dry_run)
+    fix_seniority_overrides(service, SPREADSHEET_IDS['General'], dry_run)
 
     # ── 10. Escribir en sheets de departamento ────────────────────────────────
     for dept, sheet_name in DEPT_TO_SHEET.items():
