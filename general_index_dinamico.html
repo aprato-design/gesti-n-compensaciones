@@ -822,6 +822,7 @@ body.viewer .note-input{pointer-events:none;background-color:var(--ms-grey-50)!i
         <th style="cursor:default;min-width:280px">Acción / Notas<span id="act-badge"></span></th>
         <th data-col="Ajuste ultimo año" style="min-width:160px">Ajuste último año<span class="si">↕</span></th>
         <th data-col="xM" style="min-width:120px">xM<span class="si">↕</span></th>
+        <th data-col="Seniority" style="min-width:70px">Level<span class="si">↕</span></th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
@@ -973,7 +974,10 @@ const MSEL_CONFIGS={
   ag:     { getField:d=>d.Agreement, staticOptions:['Contractor','Empleado','Plus Fijo'], noun:'agreements' },
   xm:     { getField:d=>d.xM, staticOptions:null, noun:'xM' },
   gap:    { getField:d=>d['% GAP Banda'], staticOptions:['En banda','Encima del 0% y 5%','Encima del 5% y 15%','Encima del 15%','Debajo de 0% a -5%','Debajo de -5% y -15%','Debajo de -15%'], noun:'bandas' },
-  level:  { getField:d=>d.Seniority, staticOptions:null, noun:'levels' },
+  // Seniority viene mezclado en tipos desde el sheet (número en la mayoría de las filas,
+  // texto en las que tienen un override manual como "08"/"assistant") — normalizar a
+  // string acá para que el filtro compare siempre lo mismo (ver applyFilters).
+  level:  { getField:d=>(d.Seniority===''||d.Seniority==null)?'':String(d.Seniority), staticOptions:null, noun:'levels' },
 };
 const mselSelected={code:new Set(),ag:new Set(),xm:new Set(),gap:new Set(),level:new Set()};
 
@@ -1076,7 +1080,7 @@ function applyFilters(){
     if(mselSelected.ag.size&&!mselSelected.ag.has(d.Agreement))return false;
     if(mselSelected.xm.size&&!mselSelected.xm.has(d.xM))return false;
     if(mselSelected.gap.size&&!mselSelected.gap.has(d['% GAP Banda']))return false;
-    if(mselSelected.level.size&&!mselSelected.level.has(d.Seniority))return false;
+    if(mselSelected.level.size&&!mselSelected.level.has(String(d.Seniority)))return false;
     if(q){const h=[d['Last name, First name'],d.Department,d['Code (Level)'],d.xM,d['New Code']].join(' ').toLowerCase();if(!h.includes(q))return false;}
     return true;
   });
@@ -1337,6 +1341,7 @@ function renderTable(){
       </td>
       <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;color:var(--tbl-text2);font-size:11px" title="${d['Ajuste ultimo año']||''}">${dash(d['Ajuste ultimo año'])}</td>
       <td style="color:var(--tbl-text2);font-size:11px">${dash(d.xM)}</td>
+      <td class="mono">${dash(d.Seniority)}</td>
     </tr>`;
   }).join('');
 }
