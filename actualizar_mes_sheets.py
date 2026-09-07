@@ -83,11 +83,13 @@ PARTTIME_FACTOR_BY_EMAIL = {
 # "assistant"). Para estas personas el usuario confirmó (04/09/2026) el nivel real; se
 # fija por email + Código esperado, así que si algún día tienen una recat (cambia el
 # Código), el override deja de aplicar solo y vuelve a calc_seniority() normal.
+# Valor como número simple (sin cero a la izquierda) para quedar igual al resto de la
+# nómina, donde Seniority es siempre un número (Sheets auto-convierte "08" tipeado -> 8).
 SENIORITY_OVERRIDE_BY_EMAIL = {
-    'vmunoz@makingsense.com':     ('Executive assistant', '08'),
-    'nlenkovich@makingsense.com': ('FinSsrAdv', '05'),
-    'fflorez@makingsense.com':    ('MKTHoD', '10'),
-    'sgavilan@makingsense.com':   ('DevSr2', '08'),
+    'vmunoz@makingsense.com':     ('Executive assistant', 8),
+    'nlenkovich@makingsense.com': ('FinSsrAdv', 5),
+    'fflorez@makingsense.com':    ('MKTHoD', 10),
+    'sgavilan@makingsense.com':   ('DevSr2', 8),
 }
 
 MONTH_FULL_ES = {
@@ -561,15 +563,13 @@ def append_rows(service, spreadsheet_id, rows, dry_run=False):
 
 
 def fix_seniority_overrides(service, spreadsheet_id, dry_run=False):
-    """SENIORITY_OVERRIDE_BY_EMAIL escribe texto (ej. '08'), pero append_rows() usa
-    valueInputOption=USER_ENTERED para toda la fila (lo necesitan las fechas, que deben
-    auto-parsearse a Date) — Sheets interpreta un string puramente numérico como si el
-    usuario lo hubiera tipeado, y lo convierte a número, perdiendo el cero a la izquierda.
-    Corre después de escribir el mes: relee la columna Seniority de TODAS las filas de las
-    personas con override cuyo Código coincida con el esperado, y las re-escribe con
-    valueInputOption=RAW (no parsea, queda texto literal) si no están ya correctas. Barre
-    todo el histórico (no solo el mes nuevo) para que también quede prolijo el texto viejo
-    que haya calculado mal calc_seniority() antes de que existiera el override."""
+    """SENIORITY_OVERRIDE_BY_EMAIL fija el nivel real (número simple, igual al resto de
+    la nómina) para personas con Código no estándar (ver comentario arriba de la
+    constante). Corre después de escribir el mes: relee la columna Seniority de TODAS
+    las filas de las personas con override cuyo Código coincida con el esperado, y
+    corrige cualquier celda que no tenga ya ese mismo valor — barre todo el histórico
+    (no solo el mes nuevo) así también limpia texto viejo que haya quedado de
+    calc_seniority() roto o de una corrección manual anterior con otro formato."""
     if not SENIORITY_OVERRIDE_BY_EMAIL:
         return
     resp = service.spreadsheets().values().get(
@@ -596,8 +596,8 @@ def fix_seniority_overrides(service, spreadsheet_id, dry_run=False):
         if code != expected_code:
             continue
         current = row[i_sen] if i_sen < len(row) else ''
-        if current == fixed_level and isinstance(current, str):
-            continue  # ya está correcto (texto, mismo valor)
+        if current == fixed_level:
+            continue  # ya está correcto (Python ya distingue 8 (número) de '8'/'08' (texto))
         updates.append({'range': f"'Bamboo Compensaciones - Sueldos'!J{idx}", 'values': [[fixed_level]]})
 
     if not updates:
