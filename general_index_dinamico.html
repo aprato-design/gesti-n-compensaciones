@@ -479,6 +479,10 @@ body.metrics-mode .table-section{display:none;}
 }
 .stat:first-child{padding-left:0;}
 .stat:last-child{border-right:none;}
+.stat.clickable{cursor:pointer;user-select:none;transition:opacity var(--dur-fast) var(--ease-out);}
+.stat.clickable:hover{opacity:.7;}
+.stat.clickable.active{box-shadow:inset 0 -3px 0 0 var(--ms-green);}
+.stat.clickable.active .stat-l{color:var(--ms-green-deep);}
 .stat-v{
   font-size: 18px;
   font-weight: 800;
@@ -871,7 +875,11 @@ function derivarMeses() {
 }
 const PS=100;
 const METRICS_TAB='__metricas__';
-let activeMonth='2026-01',activeDept='',sortCol='Code (Level)',sortDir=1,page=1,filtered=[],metricsDept='';
+let activeMonth='2026-01',sortCol='Code (Level)',sortDir=1,page=1,filtered=[],metricsDept='';
+// Filtro por click en la stats-bar: gap ('en'|'encima'|'debajo'|null) y agreement
+// ('Contractor'|'Plus Fijo'|'Empleado'|null) son ejes independientes (AND entre ellos),
+// cada uno exclusivo dentro de su propio eje (clickear de nuevo el mismo lo apaga).
+let statFilter={gap:null,agreement:null};
 
 // ──────── Backend bridge (Apps Script) ────────
 let USER_ROLE='loading';            // 'editor' | 'viewer' | 'denied'
@@ -930,17 +938,26 @@ function showDeniedGate(email){
 }
 
 // ── Pestañas de Departamento (reemplaza al viejo filtro por dropdown) ──
-// "Todos" (activeDept==='') muestra todos los departamentos juntos. "Métricas" es una
-// pestaña sintética más (no viene de d.Department): dentro de ella se ven solo los
-// filtros de Mes y Departamento, y en vez de la tabla se muestran las métricas agregadas
-// (Distribución en Banda, Ajuste Último Año).
+// Tres modos, mutuamente excluyentes, guardados en deptMode:
+//   'all'     → "Todos", sin filtro de depto.
+//   'depts'   → uno o más deptos tildados a la vez (selectedDepts), AND con el resto de
+//               los filtros, OR entre los deptos tildados — "ver 2+ deptos pero no todos".
+//   'metrics' → la pestaña sintética "📊 Métricas" (no viene de d.Department): dentro de
+//               ella se ven solo los filtros de Mes y Departamento, y en vez de la tabla
+//               se muestran las métricas agregadas (Distribución en Banda, Ajuste Último
+//               Año) — sin cambios respecto a antes.
+let deptMode='all';
+let selectedDepts=new Set();
 function initDeptTabs(){
   const bar=document.getElementById('dept-bar');
   const depts=[...new Set(ALL_DATA.map(d=>d.Department).filter(Boolean))].sort();
-  if(activeDept && activeDept!==METRICS_TAB && !depts.includes(activeDept)) activeDept='';
-  const allTab=`<button type="button" class="dept-tab${activeDept===''?' active':''}" data-dept="" onclick="selectDept('')">Todos</button>`;
-  const tabs=depts.map(dp=>`<button type="button" class="dept-tab${dp===activeDept?' active':''}" data-dept="${dp}" onclick="selectDept('${dp.replace(/'/g,"\\'")}')">${dp}</button>`).join('');
-  const metricsTab=`<button type="button" class="dept-tab dept-tab-metrics${activeDept===METRICS_TAB?' active':''}" data-dept="${METRICS_TAB}" onclick="selectDept('${METRICS_TAB}')">📊 Métricas</button>`;
+  if(deptMode==='depts'){
+    selectedDepts=new Set([...selectedDepts].filter(dp=>depts.includes(dp)));
+    if(!selectedDepts.size) deptMode='all';
+  }
+  const allTab=`<button type="button" class="dept-tab${deptMode==='all'?' active':''}" data-dept="" onclick="selectAllDepts()">Todos</button>`;
+  const tabs=depts.map(dp=>`<button type="button" class="dept-tab${deptMode==='depts'&&selectedDepts.has(dp)?' active':''}" data-dept="${dp}" onclick="toggleDept('${dp.replace(/'/g,"\\'")}')">${dp}</button>`).join('');
+  const metricsTab=`<button type="button" class="dept-tab dept-tab-metrics${deptMode==='metrics'?' active':''}" data-dept="${METRICS_TAB}" onclick="selectMetricsTab()">📊 Métricas</button>`;
   bar.innerHTML=allTab+tabs+metricsTab;
   populateMetricsDeptFilter(depts);
 }
@@ -955,9 +972,32 @@ document.getElementById('metrics-dept-filter').addEventListener('change',functio
   metricsDept=this.value;
   applyFilters();
 });
-window.selectDept=function(dp){
-  activeDept=dp;
-  document.querySelectorAll('#dept-bar .dept-tab').forEach(b=>b.classList.toggle('active', b.dataset.dept===dp));
+function syncDeptTabsUI(){
+  document.querySelectorAll('#dept-bar .dept-tab').forEach(b=>{
+    const dp=b.dataset.dept;
+    let active;
+    if(dp===METRICS_TAB) active = deptMode==='metrics';
+    else if(dp==='') active = deptMode==='all';
+    else active = deptMode==='depts' && selectedDepts.has(dp);
+    b.classList.toggle('active', active);
+  });
+}
+window.selectAllDepts=function(){
+  deptMode='all';
+  selectedDepts.clear();
+  syncDeptTabsUI();
+  applyFilters();
+};
+window.selectMetricsTab=function(){
+  deptMode='metrics';
+  syncDeptTabsUI();
+  applyFilters();
+};
+window.toggleDept=function(dp){
+  if(deptMode!=='depts') selectedDepts.clear();
+  if(selectedDepts.has(dp)) selectedDepts.delete(dp); else selectedDepts.add(dp);
+  deptMode = selectedDepts.size ? 'depts' : 'all';
+  syncDeptTabsUI();
   applyFilters();
 };
 
@@ -1066,21 +1106,25 @@ document.querySelectorAll('thead th[data-col]').forEach(th=>{
 document.getElementById('search').addEventListener('input',applyFilters);
 
 function updateViewMode(){
-  document.body.classList.toggle('metrics-mode', activeDept===METRICS_TAB);
+  document.body.classList.toggle('metrics-mode', deptMode==='metrics');
 }
 
 function applyFilters(){
   updateViewMode();
-  if(activeDept===METRICS_TAB){ renderMetrics(); return; }
+  if(deptMode==='metrics'){ renderMetrics(); return; }
   const q=document.getElementById('search').value.toLowerCase().trim();
   filtered=ALL_DATA.filter(d=>{
     if(d.Month!==activeMonth)return false;
-    if(activeDept&&d.Department!==activeDept)return false;
+    if(deptMode==='depts'&&!selectedDepts.has(d.Department))return false;
     if(mselSelected.code.size&&!mselSelected.code.has(d['Code (Level)']))return false;
     if(mselSelected.ag.size&&!mselSelected.ag.has(d.Agreement))return false;
     if(mselSelected.xm.size&&!mselSelected.xm.has(d.xM))return false;
     if(mselSelected.gap.size&&!mselSelected.gap.has(d['% GAP Banda']))return false;
     if(mselSelected.level.size&&!mselSelected.level.has(String(d.Seniority)))return false;
+    if(statFilter.gap==='en'&&d['% GAP Banda']!=='En banda')return false;
+    if(statFilter.gap==='encima'&&!(d['% GAP Banda']||'').startsWith('Encima'))return false;
+    if(statFilter.gap==='debajo'&&!(d['% GAP Banda']||'').startsWith('Debajo'))return false;
+    if(statFilter.agreement&&d.Agreement!==statFilter.agreement)return false;
     if(q){const h=[d['Last name, First name'],d.Department,d['Code (Level)'],d.xM,d['New Code']].join(' ').toLowerCase();if(!h.includes(q))return false;}
     return true;
   });
@@ -1190,6 +1234,21 @@ function renderMetrics(){
   document.getElementById('metrics-ajuste-body').innerHTML=metricBars(data,'Ajuste ultimo año',AJUSTE_METRIC_ORDER,k=>AJUSTE_METRIC_COLOR[k],k=>k);
 }
 
+// ── Click en la stats-bar: cada tarjeta clickeable filtra la tabla por esa condición.
+// "Personas" limpia ambos ejes. Clickear la misma tarjeta activa la apaga de nuevo.
+window.toggleStatGap=function(val){
+  statFilter.gap = statFilter.gap===val ? null : val;
+  applyFilters();
+};
+window.toggleStatAgreement=function(val){
+  statFilter.agreement = statFilter.agreement===val ? null : val;
+  applyFilters();
+};
+window.clearStatFilters=function(){
+  statFilter.gap=null; statFilter.agreement=null;
+  applyFilters();
+};
+
 function renderStats(){
   const t=filtered.length;
   const eb=filtered.filter(d=>d['% GAP Banda']==='En banda').length;
@@ -1201,14 +1260,17 @@ function renderStats(){
   const cs=filtered.map(d=>parseFloat(d['Costo USD/H'])).filter(n=>!isNaN(n));
   const avg=cs.length?(cs.reduce((a,b)=>a+b,0)/cs.length).toFixed(1):'—';
   const costoNivelar=costoAMinimo(filtered);
+  const noneActive=(!statFilter.gap&&!statFilter.agreement)?' active':'';
+  const gapActive=k=>statFilter.gap===k?' active':'';
+  const agActive=v=>statFilter.agreement===v?' active':'';
   document.getElementById('stats').innerHTML=`
-    <div class="stat"><div class="stat-v">${t}</div><div class="stat-l">Personas</div></div>
-    <div class="stat"><div class="stat-v green">${eb}</div><div class="stat-l">En banda</div></div>
-    <div class="stat"><div class="stat-v red">${ab} <span style="font-size:11px;font-weight:700;opacity:.7">↑</span></div><div class="stat-l">Encima banda</div></div>
-    <div class="stat"><div class="stat-v amber">${be} <span style="font-size:11px;font-weight:700;opacity:.7">↓</span></div><div class="stat-l">Debajo banda</div></div>
-    <div class="stat"><div class="stat-v solid-dark">${co}</div><div class="stat-l">Contractors</div></div>
-    <div class="stat"><div class="stat-v solid-dark">${pf}</div><div class="stat-l">Plus Fijo</div></div>
-    <div class="stat"><div class="stat-v solid-dark">${emp}</div><div class="stat-l">Empleados</div></div>
+    <div class="stat clickable${noneActive}" onclick="clearStatFilters()"><div class="stat-v">${t}</div><div class="stat-l">Personas</div></div>
+    <div class="stat clickable${gapActive('en')}" onclick="toggleStatGap('en')"><div class="stat-v green">${eb}</div><div class="stat-l">En banda</div></div>
+    <div class="stat clickable${gapActive('encima')}" onclick="toggleStatGap('encima')"><div class="stat-v red">${ab} <span style="font-size:11px;font-weight:700;opacity:.7">↑</span></div><div class="stat-l">Encima banda</div></div>
+    <div class="stat clickable${gapActive('debajo')}" onclick="toggleStatGap('debajo')"><div class="stat-v amber">${be} <span style="font-size:11px;font-weight:700;opacity:.7">↓</span></div><div class="stat-l">Debajo banda</div></div>
+    <div class="stat clickable${agActive('Contractor')}" onclick="toggleStatAgreement('Contractor')"><div class="stat-v solid-dark">${co}</div><div class="stat-l">Contractors</div></div>
+    <div class="stat clickable${agActive('Plus Fijo')}" onclick="toggleStatAgreement('Plus Fijo')"><div class="stat-v solid-dark">${pf}</div><div class="stat-l">Plus Fijo</div></div>
+    <div class="stat clickable${agActive('Empleado')}" onclick="toggleStatAgreement('Empleado')"><div class="stat-v solid-dark">${emp}</div><div class="stat-l">Empleados</div></div>
     <div class="stat"><div class="stat-v amber">$${avg}</div><div class="stat-l">Costo prom USD/H</div></div>
     <div class="stat"><div class="stat-v purple">$${costoNivelar.toFixed(1)}</div><div class="stat-l">Costo/h nivelar debajo banda</div></div>`;
 }
