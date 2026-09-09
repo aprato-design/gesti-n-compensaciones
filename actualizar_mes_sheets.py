@@ -539,11 +539,34 @@ def get_prev_month_emails(service, month_date):
 # ─── VERIFICAR QUE EL MES NO EXISTE YA ───────────────────────────────────────
 
 def month_already_exists(service, spreadsheet_id, month_str):
+    """Compara por año/mes real, no por string formateado: la columna Month se escribe
+    como texto ISO ("2026-08-01") vía USER_ENTERED, que Sheets auto-parsea a un Date real
+    — pero leer esa celda sin valueRenderOption devuelve el valor FORMATEADO según el
+    formato de número de esa columna en CADA sheet (ej. "8/1/2026" en QA/PE vs
+    "2026-08-01" en General/Development, formatos que quedaron distintos entre planillas).
+    Comparar contra el string ISO literal solo funcionaba por coincidencia donde el
+    formato de columna ya era ISO — en QA y PE nunca matcheaba, así que este chequeo
+    nunca frenó una corrida duplicada ahí (bug real, causó filas duplicadas en agosto
+    2026, ver project_month_duplicado_qa_pe en memoria). UNFORMATTED_VALUE devuelve el
+    serial numérico real de la fecha, inmune al formato de visualización de la columna."""
     r = service.spreadsheets().values().get(
         spreadsheetId=spreadsheet_id,
         range="'Bamboo Compensaciones - Sueldos'!A:A",
+        valueRenderOption='UNFORMATTED_VALUE',
     ).execute()
-    return any(row and row[0] == month_str for row in r.get('values', []))
+    target = datetime.datetime.strptime(month_str, '%Y-%m-%d')
+    epoch = datetime.datetime(1899, 12, 30)
+    for row in r.get('values', []):
+        if not row:
+            continue
+        v = row[0]
+        if isinstance(v, (int, float)):
+            cell_date = epoch + datetime.timedelta(days=v)
+            if cell_date.year == target.year and cell_date.month == target.month:
+                return True
+        elif isinstance(v, str) and v == month_str:
+            return True
+    return False
 
 
 # ─── ESCRITURA A SHEETS ───────────────────────────────────────────────────────
