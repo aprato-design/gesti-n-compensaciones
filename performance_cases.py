@@ -457,6 +457,26 @@ def delete_caso(caso_id: str):
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+def code_level_key(new_code: str):
+    """Level (prefix + number) from a new_code, stripping the agreement
+    suffix (-C / -ARG) so codes from different agreements at the same
+    level are treated as peers regardless of modality."""
+    if not new_code:
+        return None
+    m = re.match(r'^([A-Z]+)\s+0*(\d+)-(C|ARG)$', str(new_code).strip())
+    if not m:
+        return None
+    return f"{m.group(1)} {int(m.group(2))}"
+
+
+def next_level_key(new_code: str):
+    key = code_level_key(new_code)
+    if not key:
+        return None
+    prefix, num = key.rsplit(' ', 1)
+    return f"{prefix} {int(num) + 1}"
+
+
 def get_next_code(new_code: str, bandas_df: pd.DataFrame):
     if not new_code:
         return None
@@ -592,14 +612,17 @@ def generate_caso_pdf(caso: dict, empleados_df: pd.DataFrame, bandas_df: pd.Data
     emp_name = caso.get('employee_name', '')
 
     next_code = get_next_code(new_code, bandas_df)
-    mask = empleados_df['new_code'] == new_code
-    if next_code:
-        mask = mask | (empleados_df['new_code'] == next_code)
+    cur_level = code_level_key(new_code)
+    nxt_level = next_level_key(new_code)
+    row_levels = empleados_df['new_code'].apply(code_level_key)
+    mask = row_levels == cur_level
+    if nxt_level:
+        mask = mask | (row_levels == nxt_level)
     peers = empleados_df[mask].copy()
     peers_hidden = 0
     if not peers.empty:
         peers['Nivel'] = peers['new_code'].apply(
-            lambda c: 'Siguiente' if c == next_code else 'Actual')
+            lambda c: 'Siguiente' if code_level_key(c) == nxt_level else 'Actual')
         peers['gap_banda'] = peers.apply(
             lambda r: gap_s(r['costo_usd_h'], r['banda_min'], r['banda_max']), axis=1)
         peers = peers.sort_values(by=['Nivel', 'name'])
@@ -787,7 +810,7 @@ def generate_caso_pdf(caso: dict, empleados_df: pd.DataFrame, bandas_df: pd.Data
 
     # ── PARES ─────────────────────────────────────────────────────────────────
     if not peers.empty:
-        sec('Pares - mismo code y siguiente nivel')
+        sec('Pares - mismo level y siguiente (todos los agreements)')
         COL = [('Nombre', 42), ('Nivel', 16), ('Code', 16), ('Bill', 17),
                ('PayRoll', 17), ('Costo USD/H', 21), ('GAP', 13),
                ('Bda Min', 15), ('Bda Med', 15), ('Bda Max', 12)]
@@ -1146,14 +1169,17 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
     st.markdown(banda_card_html, unsafe_allow_html=True)
 
     # ── Pares ─────────────────────────────────────────────────────────────────
-    st.markdown('<div class="section-header">Pares — mismo code y siguiente nivel</div>',
+    st.markdown('<div class="section-header">Pares — mismo level y siguiente (todos los agreements)</div>',
                 unsafe_allow_html=True)
 
     next_code = get_next_code(new_code_empleado, bandas_df)
 
-    mask = empleados_df['new_code'] == new_code_empleado
-    if next_code:
-        mask = mask | (empleados_df['new_code'] == next_code)
+    cur_level = code_level_key(new_code_empleado)
+    nxt_level = next_level_key(new_code_empleado)
+    row_levels = empleados_df['new_code'].apply(code_level_key)
+    mask = row_levels == cur_level
+    if nxt_level:
+        mask = mask | (row_levels == nxt_level)
 
     peers = empleados_df[mask].copy()
 
@@ -1161,7 +1187,7 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
         st.info('No se encontraron pares para este code.')
     else:
         peers['Nivel'] = peers['new_code'].apply(
-            lambda c: '➡ Siguiente' if c == next_code else 'Actual'
+            lambda c: '➡ Siguiente' if code_level_key(c) == nxt_level else 'Actual'
         )
         # Recompute bands live from Bandas Div instead of the snapshot stored
         # per-row in Sueldos, so peers match the live bands used for the proposal.
