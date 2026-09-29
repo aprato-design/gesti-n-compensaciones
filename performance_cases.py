@@ -1614,22 +1614,64 @@ def show_open_list(casos_df: pd.DataFrame):
         st.info('No hay casos abiertos.')
         return
 
-    h1, h2, h3, h4, h5 = st.columns([3, 2, 2, 2, 1])
-    h1.markdown('<div class="list-header">Colaborador</div>', unsafe_allow_html=True)
-    h2.markdown('<div class="list-header">Code</div>', unsafe_allow_html=True)
-    h3.markdown('<div class="list-header">Tipo</div>', unsafe_allow_html=True)
-    h4.markdown('<div class="list-header">Diferencial</div>', unsafe_allow_html=True)
-    h5.markdown('<div class="list-header"></div>', unsafe_allow_html=True)
+    fx_blue = load_variables().get('FX ARG Blue', 0)
+
+    def pct_bruto_total(row):
+        # Same formula as the case detail: only meaningful for Plus Fijo
+        if row.get('agreement', '') != 'Plus Fijo' or not fx_blue:
+            return None
+        bruto_actual = float(row.get('current_payroll', 0) or 0) + float(row.get('current_bill', 0) or 0) * fx_blue
+        bruto_prop = float(row.get('proposed_payroll', 0) or 0) + float(row.get('proposed_bill', 0) or 0) * fx_blue
+        if not bruto_actual:
+            return None
+        return (bruto_prop - bruto_actual) / bruto_actual * 100
+
+    # Selection for budget analysis — lives only in session state, never saved
+    sel_keys = {row['id']: f"sel_open_{row['id']}" for _, row in open_df.iterrows()}
+    selected = open_df[[st.session_state.get(sel_keys[i], False) for i in open_df['id']]]
+
+    def clear_selection():
+        for k in sel_keys.values():
+            st.session_state[k] = False
+
+    if selected.empty:
+        st.caption('Tildá casos para ver cuánto presupuesto mensual demandarían.')
+    else:
+        sel_diff_h = selected['differential'].sum()
+        n_sel = len(selected)
+        bcol, bclear = st.columns([5, 1])
+        bcol.markdown(
+            f'<div class="budget-box">'
+            f'<b>🧮 Casos seleccionados: {n_sel}</b><br>'
+            f'Diferencial total: <b>{sel_diff_h:+.4f} USD/H</b> &nbsp;·&nbsp; '
+            f'Costo mensual (×168): <b>{fmt_usd(sel_diff_h * HORAS, zero_dash=False)} USD</b>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+        bclear.button('Limpiar selección', on_click=clear_selection, use_container_width=True)
+
+    widths = [0.5, 3, 1.6, 1.6, 2, 1.4, 1.6, 1.6, 1]
+    headers = ['', 'Colaborador', 'Agreement', 'Code', 'Tipo', '% Var. Bruto Total',
+               'Diferencial', 'Costo mensual', '']
+    for col, label in zip(st.columns(widths), headers):
+        col.markdown(f'<div class="list-header">{label}</div>', unsafe_allow_html=True)
 
     for _, row in open_df.iterrows():
         diff = float(row.get('differential', 0) or 0)
         diff_str = f'{diff:+.2f} USD/H' if diff != 0 else 'Sin ajuste'
-        c1, c2, c3, c4, c5 = st.columns([3, 2, 2, 2, 1])
+        costo_mes_str = fmt_usd(diff * HORAS, zero_dash=False) if diff != 0 else '—'
+        pct = pct_bruto_total(row)
+        pct_str = f'{pct:+.1f}%' if pct is not None else '—'
+        c0, c1, c2, c3, c4, c5, c6, c7, c8 = st.columns(widths)
+        c0.checkbox('Seleccionar', key=sel_keys[row['id']], label_visibility='collapsed')
         c1.markdown(f"**{row.get('employee_name', '—')}**")
-        c2.markdown(f"`{row.get('code', '—')}`")
-        c3.markdown(badge_html(row.get('tipo', '—')), unsafe_allow_html=True)
-        c4.markdown(f"<span style='font-size:0.88rem'>{diff_str}</span>", unsafe_allow_html=True)
-        with c5:
+        c2.markdown(f"<span style='font-size:0.85rem'>{row.get('agreement', '') or '—'}</span>", unsafe_allow_html=True)
+        c3.markdown(f"`{row.get('code', '—')}`")
+        c4.markdown(badge_html(row.get('tipo', '—')), unsafe_allow_html=True)
+        c5.markdown(f"<span style='font-size:0.88rem'>{pct_str}</span>", unsafe_allow_html=True)
+        c6.markdown(f"<span style='font-size:0.88rem'>{diff_str}</span>", unsafe_allow_html=True)
+        c7.markdown(f"<span style='font-size:0.88rem'>{costo_mes_str}</span>", unsafe_allow_html=True)
+        with c8:
             if st.button('Ver →', key=f"open_{row['id']}"):
                 st.session_state.editing_id = row['id']
                 st.session_state.view = 'edit'
