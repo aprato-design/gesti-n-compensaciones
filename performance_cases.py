@@ -1616,9 +1616,17 @@ def show_open_list(casos_df: pd.DataFrame):
 
     fx_blue = load_variables().get('FX ARG Blue', 0)
 
+    def pct_var(cur, prop):
+        return (prop - cur) / cur * 100 if cur else None
+
     def pct_bruto_total(row):
-        # Same formula as the case detail: only meaningful for Plus Fijo
-        if row.get('agreement', '') != 'Plus Fijo' or not fx_blue:
+        # Contractor → Var. Bill, Empleado → Var. PayRoll, Plus Fijo → Var. Bruto Total (as in case detail)
+        agreement = row.get('agreement', '')
+        if agreement == 'Contractor':
+            return pct_var(float(row.get('current_bill', 0) or 0), float(row.get('proposed_bill', 0) or 0))
+        if agreement == 'Empleado':
+            return pct_var(float(row.get('current_payroll', 0) or 0), float(row.get('proposed_payroll', 0) or 0))
+        if agreement != 'Plus Fijo' or not fx_blue:
             return None
         bruto_actual = float(row.get('current_payroll', 0) or 0) + float(row.get('current_bill', 0) or 0) * fx_blue
         bruto_prop = float(row.get('proposed_payroll', 0) or 0) + float(row.get('proposed_bill', 0) or 0) * fx_blue
