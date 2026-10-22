@@ -337,7 +337,9 @@ def _apply_daily_cols(row, emp, demo_row):
     # Apóstrofe fuerza texto bajo USER_ENTERED — sin esto Sheets interpreta
     # valores como "04" como número y se come el cero adelante.
     row[9] = f"'{senior_val}" if senior_val else ''
-    row[10] = emp.get('customAgreement') or ''
+    # Si Bamboo no tiene Agreement se conserva el de la BDD (bajas 2020-2021
+    # completadas desde el historial de Employment Status, oct-2026).
+    row[10] = emp.get('customAgreement') or row[10] or ''
     row[11] = _num(emp.get('customBill'))
     row[12] = _num(emp.get('customPayRoll'))
     row[13] = emp.get('customPer') or ''
