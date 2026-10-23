@@ -500,6 +500,48 @@ def fmt_usd(val, zero_dash=True) -> str:
     return f'${v:,.2f}'
 
 
+def peer_bruto_total(row, fx_blue: float) -> float | None:
+    """
+    Bruto total ARS (FX Blue):
+      Empleado / Plus Fijo: payroll + bill * FX
+      Contractor Hour:      bill * 168 * FX
+      Contractor Month:     bill * FX
+    """
+    if not fx_blue:
+        return None
+    if row['agreement'] == 'Contractor':
+        if row['per'] == 'Hour':
+            return row['bill'] * 168 * fx_blue
+        return row['bill'] * fx_blue
+    return row['payroll'] + row['bill'] * fx_blue
+
+
+def peers_averages(peers: pd.DataFrame, niveles: list[str]) -> list[dict]:
+    """
+    Averages per Code (ordered by Nivel, then Code), ignoring zeros / blanks.
+    Expects 'Nivel' and 'bruto_total' columns.
+    """
+    def _avg(s):
+        s = pd.to_numeric(s, errors='coerce')
+        s = s[s > 0]
+        return s.mean() if not s.empty else None
+
+    rows = []
+    for nivel in niveles:
+        for code, g in peers[peers['Nivel'] == nivel].groupby('code', sort=True):
+            contr = g['agreement'] == 'Contractor'
+            rows.append({
+                'Nivel': nivel,
+                'Code': code,
+                'Prom. Bill/hs': _avg(g.loc[contr & (g['per'] == 'Hour'), 'bill']),
+                'Prom. Bill/mensual': _avg(g.loc[contr & (g['per'] != 'Hour'), 'bill']),
+                'Prom. PayRoll': _avg(g.loc[~contr, 'payroll']),
+                'Prom. Bruto Total ARS': _avg(g['bruto_total']),
+                'Personas': len(g),
+            })
+    return rows
+
+
 def calc_costo_empresa(bill: float, payroll: float, per: str,
                        agreement: str, currency: str, vars: dict) -> float | None:
     """Calculate Costo USD/H using the same formulas as the main compensation sheet.
@@ -620,11 +662,16 @@ def generate_caso_pdf(caso: dict, empleados_df: pd.DataFrame, bandas_df: pd.Data
         mask = mask | (row_levels == nxt_level)
     peers = empleados_df[mask].copy()
     peers_hidden = 0
+    peers_avg = []
     if not peers.empty:
         peers['Nivel'] = peers['new_code'].apply(
             lambda c: 'Siguiente' if code_level_key(c) == nxt_level else 'Actual')
         peers['gap_banda'] = peers.apply(
             lambda r: gap_s(r['costo_usd_h'], r['banda_min'], r['banda_max']), axis=1)
+        fx_blue = load_variables().get('FX ARG Blue', 0)
+        peers['bruto_total'] = peers.apply(lambda r: peer_bruto_total(r, fx_blue), axis=1)
+        # Averages over all peers, before truncating to MAX_PEERS
+        peers_avg = peers_averages(peers, ['Actual', 'Siguiente'])
         peers = peers.sort_values(by=['Nivel', 'name'])
         if len(peers) > MAX_PEERS:
             is_self = peers['name'].astype(str) == emp_name
@@ -811,9 +858,10 @@ def generate_caso_pdf(caso: dict, empleados_df: pd.DataFrame, bandas_df: pd.Data
     # ── PARES ─────────────────────────────────────────────────────────────────
     if not peers.empty:
         sec('Pares - mismo level y siguiente (todos los agreements)')
-        COL = [('Nombre', 42), ('Nivel', 16), ('Code', 16), ('Bill', 17),
-               ('PayRoll', 17), ('Costo USD/H', 21), ('GAP', 13),
-               ('Bda Min', 15), ('Bda Med', 15), ('Bda Max', 12)]
+        COL = [('Nombre', 34), ('Nivel', 14), ('Code', 16), ('Bill', 15),
+               ('PayRoll', 15), ('Bruto ARS', 22), ('Costo USD/H', 18), ('GAP', 12),
+               ('Bda Min', 13), ('Bda Med', 13), ('Bda Max', 12)]
+        fa = lambda v: s(f'${v:,.0f}') if v and pd.notna(v) else '-'
         # Header row
         pdf.set_x(MARGIN)
         pdf.set_font('Helvetica', 'B', 6.5)
@@ -836,15 +884,16 @@ def generate_caso_pdf(caso: dict, empleados_df: pd.DataFrame, bandas_df: pd.Data
             pdf.set_x(MARGIN)
             g_peer = s(pr.get('gap_banda', '-'))
             row_data = [
-                (s(pr.get('name','')), 42, 'L'),
-                (s(pr.get('Nivel','')), 16, 'C'),
+                (fit(pr.get('name',''), 33), 34, 'L'),
+                (s(pr.get('Nivel','')), 14, 'C'),
                 (s(pr.get('new_code','')), 16, 'C'),
-                (fu(pr.get('bill',0)), 17, 'R'),
-                (fu(pr.get('payroll',0)), 17, 'R'),
-                (fu(pr.get('costo_usd_h',0)), 21, 'R'),
-                (g_peer, 13, 'C'),
-                (fu(pr.get('banda_min',0)), 15, 'R'),
-                (fu(pr.get('banda_med',0)), 15, 'R'),
+                (fu(pr.get('bill',0)), 15, 'R'),
+                (fu(pr.get('payroll',0)), 15, 'R'),
+                (fa(pr.get('bruto_total')), 22, 'R'),
+                (fu(pr.get('costo_usd_h',0)), 18, 'R'),
+                (g_peer, 12, 'C'),
+                (fu(pr.get('banda_min',0)), 13, 'R'),
+                (fu(pr.get('banda_med',0)), 13, 'R'),
                 (fu(pr.get('banda_max',0)), 12, 'R'),
             ]
             for val, cw, align in row_data:
@@ -855,6 +904,35 @@ def generate_caso_pdf(caso: dict, empleados_df: pd.DataFrame, bandas_df: pd.Data
             pdf.set_font('Helvetica', 'I', 6.5)
             pdf.set_text_color(*GRAY)
             pdf.cell(W, 4.5, s(f'+{peers_hidden} pares adicionales no mostrados'), ln=True)
+        if peers_avg:
+            # Promedios (sobre todos los pares, incluidos los no mostrados)
+            pdf.ln(1.5)
+            ACOL = [('Nivel', 18), ('Code', 26), ('Prom. Bill/hs', 26), ('Prom. Bill/mens.', 26),
+                    ('Prom. PayRoll', 26), ('Prom. Bruto ARS', 40), ('Personas', 18)]
+            pdf.set_x(MARGIN)
+            pdf.set_font('Helvetica', 'B', 6.5)
+            pdf.set_text_color(*GRAY)
+            pdf.set_fill_color(*LGRAY)
+            for col_name, cw in ACOL:
+                pdf.cell(cw, 5.5, col_name, border=1, fill=True, align='C')
+            pdf.ln()
+            pdf.set_font('Helvetica', '', 6.5)
+            pdf.set_text_color(*DARK)
+            for ar in peers_avg:
+                pdf.set_x(MARGIN)
+                pdf.set_fill_color(*(PURPLE_BG if ar['Nivel'] == 'Siguiente' else (255, 255, 255)))
+                arow = [
+                    (s(ar['Nivel']), 18, 'C'),
+                    (s(ar['Code']), 26, 'C'),
+                    (fu(ar['Prom. Bill/hs']), 26, 'R'),
+                    (fu(ar['Prom. Bill/mensual']), 26, 'R'),
+                    (fu(ar['Prom. PayRoll']), 26, 'R'),
+                    (fa(ar['Prom. Bruto Total ARS']), 40, 'R'),
+                    (s(ar['Personas']), 18, 'C'),
+                ]
+                for val, cw, align in arow:
+                    pdf.cell(cw, 5.5, val, border=1, fill=True, align=align)
+                pdf.ln()
         pdf.ln(2.5)
 
     # ── BANDAS CROSS ──────────────────────────────────────────────────────────
@@ -1207,23 +1285,18 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
 
         peers['gap_banda'] = peers.apply(_gap_banda, axis=1)
 
-        peers_cols = ['name', 'Nivel', 'code', 'seniority', 'bill', 'payroll',
+        fx_blue = vars.get('FX ARG Blue', 0)
+        peers['bruto_total'] = peers.apply(lambda r: peer_bruto_total(r, fx_blue), axis=1)
+        fmt_ars = lambda v: f'${v:,.0f}' if v and pd.notna(v) else '—'
+
+        peers_cols = ['name', 'Nivel', 'code', 'seniority', 'bill', 'payroll', 'bruto_total',
                       'costo_usd_h', 'gap_banda', 'banda_min', 'banda_med', 'banda_max']
-        peers_col_names = ['Nombre', 'Nivel', 'Code', 'Seniority', 'Bill', 'PayRoll',
+        peers_col_names = ['Nombre', 'Nivel', 'Code', 'Seniority', 'Bill', 'PayRoll', 'Bruto Total ARS',
                            'Costo USD/H', 'GAP Banda', 'Banda Mín', 'Banda Med', 'Banda Máx']
         fmt_map = {
-            'Bill': fmt_usd, 'PayRoll': fmt_usd, 'Costo USD/H': fmt_usd,
+            'Bill': fmt_usd, 'PayRoll': fmt_usd, 'Bruto Total ARS': fmt_ars, 'Costo USD/H': fmt_usd,
             'Banda Mín': fmt_usd, 'Banda Med': fmt_usd, 'Banda Máx': fmt_usd,
         }
-
-        if agreement == 'Plus Fijo':
-            fx_blue = vars.get('FX ARG Blue', 0)
-            if fx_blue:
-                peers = peers.copy()
-                peers['bruto_total'] = peers['payroll'] + peers['bill'] * fx_blue
-                peers_cols.append('bruto_total')
-                peers_col_names.append('Bruto Total ARS')
-                fmt_map['Bruto Total ARS'] = lambda v: f'${v:,.0f}' if v else '—'
 
         display_peers = peers[peers_cols].copy()
         display_peers.columns = peers_col_names
@@ -1250,6 +1323,18 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
             .format(fmt_map)
         )
         st.dataframe(styled, use_container_width=True, hide_index=True)
+
+        avg_rows = peers_averages(peers, ['Actual', '➡ Siguiente'])
+        if avg_rows:
+            fmt_avg_usd = lambda v: fmt_usd(v) if v and pd.notna(v) else '—'
+            st.markdown('**Promedios de pares**')
+            st.dataframe(
+                pd.DataFrame(avg_rows).style.format({
+                    'Prom. Bill/hs': fmt_avg_usd, 'Prom. Bill/mensual': fmt_avg_usd,
+                    'Prom. PayRoll': fmt_avg_usd, 'Prom. Bruto Total ARS': fmt_ars,
+                }),
+                use_container_width=True, hide_index=True,
+            )
 
     # ── Bandas otra modalidad ──────────────────────────────────────────────────
     cross_label = 'Costo USD/H (Empleado)' if agreement == 'Contractor' else 'Contractor'
