@@ -618,12 +618,23 @@ td strong{font-weight:700;color:var(--ms-dark);}
 /* ════ METRICS TAB ════ */
 .metrics-panel{display:none;}
 body.metrics-mode .metrics-panel{display:block;background:var(--ms-white);padding:24px 28px 40px;}
-.metrics-summary{color:var(--tbl-text2);font-size:12.5px;font-weight:600;margin-bottom:20px;}
+.metrics-summary{color:var(--tbl-text2);font-size:12.5px;font-weight:600;margin-bottom:12px;}
 .metrics-summary strong{color:var(--ms-dark);}
+.people-count-btn{background:none;border:none;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.people-count-btn:hover strong{color:var(--ms-blue-deep);}
+.people-count-btn::after{content:'▾';font-size:9px;opacity:.5;transition:transform .15s;}
+.people-count-btn.open::after{transform:rotate(180deg);}
+.people-list-wrap{max-height:360px;overflow-y:auto;margin-bottom:20px;}
+.people-list-wrap thead th{position:sticky;top:0;background:var(--bg-1);z-index:1;}
+.people-list-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;font-size:12.5px;font-weight:700;color:var(--ms-dark);}
+.people-list-close{background:none;border:none;padding:0;font-size:11px;font-weight:700;color:var(--tbl-text3);cursor:pointer;flex-shrink:0;}
+.people-list-close:hover{color:var(--ms-red);}
+.count-btn{background:none;border:none;padding:0;margin:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;}
+.count-btn:hover{color:var(--ms-blue-deep);}
 .metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
 @media (max-width:900px){.metrics-grid{grid-template-columns:1fr;}}
 .metric-card{background:var(--bg-1);border:1px solid var(--tbl-border);border-radius:var(--radius-lg);padding:20px 22px;}
-.metric-card h3{font:var(--h5);color:var(--ms-dark);margin-bottom:16px;}
+.metric-card h3{font:var(--h5);color:var(--ms-dark);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
 .metric-body{display:flex;flex-direction:column;gap:12px;}
 .metric-row{display:flex;align-items:center;gap:12px;}
 .metric-label{width:150px;flex-shrink:0;font-size:11.5px;font-weight:600;color:var(--tbl-text2);}
@@ -647,6 +658,94 @@ body.metrics-mode .metrics-panel{display:block;background:var(--ms-white);paddin
 .metric-trend-table td:first-child{font-family:var(--font-sans);font-weight:600;color:var(--ms-dark);}
 .metric-trend-table tbody tr:last-child td{border-bottom:none;}
 .metric-live-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:var(--radius-pill);font-size:9px;font-weight:700;background:rgba(14,204,126,.15);color:var(--ms-green-deep);margin-left:8px;letter-spacing:.03em;text-transform:uppercase;}
+.metric-var-up{color:var(--ms-red);font-weight:700;}
+.metric-var-down{color:var(--ms-green-deep);font-weight:700;}
+.metric-var-flat{color:var(--tbl-text2);font-weight:600;}
+.metric-var-na{color:var(--tbl-text3);}
+
+/* ── Nivel vs GAP Banda: barra divergente por level, centrada en "En banda" —
+   debajo de banda crece a la izquierda (azules), encima a la derecha (naranjas),
+   el tono se oscurece cuanto más lejos de banda. ── */
+.lvl-gap-legend{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:12px 0 16px;}
+.lvl-gap-legend-group{display:flex;align-items:center;gap:10px;}
+.lvl-gap-legend-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:var(--ls-eyebrow);color:var(--tbl-text3);}
+.lvl-gap-legend-item{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--tbl-text2);font-weight:600;}
+.lvl-gap-legend-swatch{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.lvl-gap-legend-sep{width:1px;height:16px;background:var(--tbl-border2);}
+.lvl-gap-head{display:flex;align-items:flex-end;gap:12px;padding-bottom:6px;border-bottom:1px solid var(--tbl-border);margin-bottom:4px;}
+.lvl-gap-head .lvl-gap-label,.lvl-gap-head .lvl-gap-health,.lvl-gap-head .lvl-gap-n{cursor:default;font-family:var(--font-sans);font-size:10px;text-transform:uppercase;letter-spacing:var(--ls-eyebrow);color:var(--tbl-text2);font-weight:700;background:none;}
+.lvl-gap-axis{flex:1;display:flex;justify-content:space-between;font-size:10px;font-weight:700;color:var(--tbl-text2);text-transform:uppercase;letter-spacing:var(--ls-eyebrow);}
+.lvl-gap-row{display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--tbl-border);}
+.lvl-gap-row:last-child{border-bottom:none;}
+.lvl-gap-label{width:90px;flex-shrink:0;font-family:var(--font-mono);font-size:11.5px;font-weight:700;color:var(--ms-dark);cursor:pointer;user-select:none;border-radius:6px;padding:2px 6px;margin-left:-6px;transition:background .12s,color .12s;}
+.lvl-gap-row .lvl-gap-label:hover{background:var(--ms-grey-100);}
+.lvl-gap-label.active{background:var(--ms-dark);color:#fff;}
+.lvl-gap-track{flex:1;position:relative;height:24px;}
+.lvl-gap-track::before{content:'';position:absolute;left:50%;top:-6px;bottom:-6px;border-left:1px dashed var(--ms-grey-400);}
+.lvl-gap-seg{position:absolute;top:0;height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:var(--font-mono);box-shadow:inset 0 0 0 1px #fff;transition:filter .1s;cursor:default;overflow:hidden;white-space:nowrap;}
+.lvl-gap-seg:hover{filter:brightness(.9);}
+.lvl-gap-seg.end-l{border-radius:4px 0 0 4px;}
+.lvl-gap-seg.end-r{border-radius:0 4px 4px 0;}
+.lvl-gap-seg.ink-dark{color:var(--ms-dark);}
+.lvl-gap-seg.ink-light{color:#fff;}
+.lvl-gap-health{width:96px;flex-shrink:0;text-align:right;font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--ms-dark);}
+.lvl-gap-health small{display:block;font-family:var(--font-sans);font-size:9.5px;font-weight:600;color:var(--tbl-text3);}
+.lvl-gap-n{width:56px;flex-shrink:0;text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--tbl-text2);}
+.lvl-gap-foot{margin-top:10px;font-size:10.5px;color:var(--tbl-text3);}
+
+/* ── Costo Total por Cuenta / Proyecto: ranking horizontal ── */
+.proj-cost-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
+.proj-cost-search{flex:0 1 280px;padding:7px 12px;border:1px solid var(--tbl-border2);border-radius:var(--radius-pill);font:inherit;font-size:12px;color:var(--tbl-text);background:var(--ms-white);}
+.proj-cost-search:focus{outline:none;border-color:var(--ms-blue);}
+.proj-cost-kpis{display:flex;gap:22px;}
+.proj-cost-kpi{text-align:right;}
+.proj-cost-kpi b{display:block;font-family:var(--font-mono);font-size:16px;color:var(--ms-dark);}
+.proj-cost-kpi span{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:var(--ls-eyebrow);color:var(--tbl-text3);}
+.proj-cost-row{display:flex;align-items:center;gap:12px;padding:4px 0;}
+.proj-cost-rank{width:22px;flex-shrink:0;text-align:right;font-family:var(--font-mono);font-size:10.5px;color:var(--tbl-text3);}
+.proj-cost-name{width:220px;flex-shrink:0;font-size:11.5px;font-weight:600;color:var(--tbl-text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.proj-cost-track{flex:1;height:14px;}
+.proj-cost-fill{height:100%;border-radius:0 4px 4px 0;background:#2a78d6;min-width:2px;transition:width var(--dur-slow) var(--ease-out);}
+.proj-cost-row.sin .proj-cost-fill{background:var(--ms-grey-400);}
+.proj-cost-row.sin .proj-cost-name{font-style:italic;color:var(--tbl-text3);}
+.proj-cost-val{width:96px;flex-shrink:0;text-align:right;font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--ms-dark);}
+.proj-cost-share{width:48px;flex-shrink:0;text-align:right;font-family:var(--font-mono);font-size:10.5px;color:var(--tbl-text3);}
+.proj-cost-n{width:64px;flex-shrink:0;text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--tbl-text2);}
+.proj-cost-more{margin-top:10px;background:none;border:1px solid var(--tbl-border2);border-radius:var(--radius-pill);padding:5px 14px;font:inherit;font-size:11px;font-weight:600;color:var(--tbl-text2);cursor:pointer;}
+.proj-cost-more:hover{border-color:var(--ms-blue);color:var(--ms-blue-deep);}
+.proj-cost-sep{border-top:1px dashed var(--tbl-border2);margin:6px 0;}
+
+/* ── Charts (stacked columns) — Costo por Departamento / por Agreement ── */
+.viz-chart-wrap{position:relative;margin-top:6px;}
+.viz-chart-wrap svg{width:100%;height:auto;display:block;overflow:visible;}
+.viz-bar-col{cursor:pointer;}
+.viz-bar-col .viz-seg{transition:filter .1s;}
+.viz-bar-col:hover .viz-seg,.viz-bar-col:focus .viz-seg{filter:brightness(.9);}
+.viz-bar-col:focus{outline:none;}
+.viz-bar-col:focus-visible .viz-hit{stroke:var(--ms-blue-deep);stroke-width:2;}
+.viz-gridline{stroke:var(--tbl-border);stroke-width:1;}
+.viz-axis-label{font-size:10px;fill:var(--tbl-text3);font-family:var(--font-sans);}
+.viz-month-label{font-size:10.5px;fill:var(--tbl-text2);font-family:var(--font-sans);font-weight:600;}
+.viz-total-label{font-size:10px;font-weight:700;fill:var(--tbl-text2);font-family:var(--font-sans);}
+.viz-legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:12px;}
+.viz-legend-item{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--tbl-text2);font-weight:600;}
+.viz-legend-swatch{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.viz-legend-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid transparent;border-radius:var(--radius-pill);padding:4px 10px 4px 6px;cursor:pointer;font:inherit;color:var(--tbl-text2);font-size:10.5px;font-weight:600;}
+.viz-legend-btn:hover{border-color:var(--tbl-border2);}
+.viz-legend-btn.active{background:var(--ms-grey-100);border-color:var(--ms-grey-400);color:var(--ms-dark);}
+.chart-pill-row{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0;align-items:center;}
+.chart-pill-label{font-size:11px;font-weight:700;color:var(--tbl-text2);margin-right:2px;}
+.chart-pill{padding:5px 12px;border-radius:var(--radius-pill);border:1px solid var(--tbl-border2);background:var(--ms-white);color:var(--tbl-text2);font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;}
+.chart-pill:hover{border-color:var(--ms-blue);color:var(--ms-blue-deep);}
+.chart-pill.active{background:var(--ms-dark);border-color:var(--ms-dark);color:#fff;}
+.viz-line-dot{transition:r .1s;}
+.viz-tooltip{position:absolute;pointer-events:none;background:var(--ms-dark);color:#fff;font-size:11px;line-height:1.6;padding:9px 11px;border-radius:8px;box-shadow:0 6px 16px rgba(0,0,0,.2);z-index:20;opacity:0;transform:translate(-50%,-100%);transition:opacity .08s;max-width:230px;white-space:nowrap;}
+.viz-tooltip.show{opacity:1;}
+.viz-tooltip-title{font-weight:700;margin-bottom:5px;color:#fff;}
+.viz-tooltip-row{display:flex;align-items:center;gap:14px;justify-content:space-between;}
+.viz-tooltip-key{display:inline-flex;align-items:center;gap:6px;color:#D8DEE4;}
+.viz-tooltip-swatch{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+.viz-tooltip-val{font-weight:700;color:#fff;font-family:var(--font-mono);}
 
 /* ── ACTION COLUMN ── */
 .action-cell{min-width:280px;padding:8px 12px !important;white-space:normal !important;}
@@ -707,6 +806,12 @@ body.metrics-mode .metrics-panel{display:block;background:var(--ms-white);paddin
 .lc-check.done{color:var(--ms-green-deep);font-weight:700;}
 body.viewer .lc-select{pointer-events:none;opacity:.7;background-color:var(--ms-grey-100)!important;color:var(--ms-grey-700)!important;}
 body.viewer .lc-check input[type=checkbox]{pointer-events:none;}
+
+/* ── Filas compactas en la tabla principal (más personas visibles sin scrollear) ── */
+#tbody td{padding:4px 10px;}
+#tbody td.action-cell,#tbody td.lc-cell{padding:2px 10px !important;}
+#tbody .note-input{padding:2px 8px;min-height:20px;line-height:1.3;}
+#tbody .gp,#tbody .bdg{padding:1px 8px;}
 </style>
 
 <style id="apps-script-roles">
@@ -768,7 +873,7 @@ body.viewer .note-input{pointer-events:none;background-color:var(--ms-grey-50)!i
 <div class="dept-bar" id="dept-bar"></div>
 
 <div class="filter-bar">
-  <span class="fl">Mes:</span>
+  <span class="fl" id="mes-label">Mes:</span>
   <div class="pill-group" id="month-pills"></div>
   <span class="fl table-only-filter" style="margin-left:8px">Código:</span>
   <div class="msel table-only-filter" id="code-filter">
@@ -795,8 +900,22 @@ body.viewer .note-input{pointer-events:none;background-color:var(--ms-grey-50)!i
     <button type="button" class="msel-btn" id="level-filter-btn"><span class="msel-label">Todos</span><span class="msel-caret">▾</span></button>
     <div class="msel-panel" id="level-filter-panel"></div>
   </div>
+  <span class="fl table-only-filter">Proyecto:</span>
+  <div class="msel table-only-filter" id="proj-filter">
+    <button type="button" class="msel-btn" id="proj-filter-btn"><span class="msel-label">Todos</span><span class="msel-caret">▾</span></button>
+    <div class="msel-panel" id="proj-filter-panel"></div>
+  </div>
   <span class="fl metrics-only-filter">Departamento:</span>
   <select class="metrics-only-filter" id="metrics-dept-filter"></select>
+  <span class="fl metrics-only-filter">Level:</span>
+  <select class="metrics-only-filter" id="metrics-level-filter"></select>
+  <span class="fl metrics-only-filter">Período:</span>
+  <select class="metrics-only-filter" id="metrics-period-mode">
+    <option value="month">Mensual</option>
+    <option value="quarter">Trimestral</option>
+    <option value="semester">Semestral</option>
+  </select>
+  <select class="metrics-only-filter" id="metrics-period-value"></select>
 </div>
 
 <div class="stats-bar" id="stats"></div>
@@ -811,7 +930,7 @@ body.viewer .note-input{pointer-events:none;background-color:var(--ms-grey-50)!i
         <th data-col="Agreement" style="min-width:90px">Agreement<span class="si">↕</span></th>
         <th data-col="Bill" style="min-width:50px">Bill<span class="si">↕</span></th>
         <th data-col="PayRoll" style="min-width:90px">PayRoll<span class="si">↕</span></th>
-        <th data-col="Costo USD/H" style="min-width:80px">USD/H<span class="si">↕</span></th>
+        <th data-col="Costo USD/H" style="min-width:80px">Costo USD/H<span class="si">↕</span></th>
         <th data-col="Banda Min" style="min-width:60px">B. Min<span class="si">↕</span></th>
         <th data-col="Banda Med" style="min-width:60px">B. Med<span class="si">↕</span></th>
         <th data-col="Banda Max" style="min-width:60px">B. Max<span class="si">↕</span></th>
@@ -823,6 +942,7 @@ body.viewer .note-input{pointer-events:none;background-color:var(--ms-grey-50)!i
         <th data-col="Fecha ultimo LC" style="min-width:100px">Fecha Últ. LC<span class="si">↕</span></th>
         <th data-col="Aging LC (meses)" style="min-width:80px">Aging LC<span class="si">↕</span></th>
         <th data-col="Status LC" style="min-width:110px">Status LC<span class="si">↕</span></th>
+        <th data-col="Outcome LC" style="min-width:110px">Outcome LC<span class="si">↕</span></th>
         <th style="cursor:default;min-width:280px">Acción / Notas<span id="act-badge"></span></th>
         <th data-col="Ajuste ultimo año" style="min-width:160px">Ajuste último año<span class="si">↕</span></th>
         <th data-col="xM" style="min-width:120px">xM<span class="si">↕</span></th>
@@ -837,9 +957,11 @@ body.viewer .note-input{pointer-events:none;background-color:var(--ms-grey-50)!i
 
 <div class="metrics-panel" id="metrics-section">
   <div class="metrics-summary" id="metrics-summary"></div>
+  <div id="metrics-people-panel-slot"></div>
+  <div class="metric-card metric-card-wide" id="metrics-people-panel" hidden></div>
   <div class="metrics-grid">
     <div class="metric-card">
-      <h3>Distribución en Banda</h3>
+      <h3>Distribución en Banda<span class="metric-live-badge" id="banda-saludable-badge" style="margin-left:0"></span></h3>
       <div class="metric-body" id="metrics-banda-body"></div>
     </div>
     <div class="metric-card">
@@ -847,12 +969,87 @@ body.viewer .note-input{pointer-events:none;background-color:var(--ms-grey-50)!i
       <div class="metric-body" id="metrics-ajuste-body"></div>
     </div>
   </div>
+  <div class="metric-card metric-card-wide">
+    <h3>Prioridad de Revisión Salarial</h3>
+    <div class="metric-card-sub" id="metrics-salaryreview-sub"></div>
+    <div id="metrics-salaryreview-body"></div>
+  </div>
+  <div class="metric-card metric-card-wide">
+    <h3>Nivel (Level) vs GAP Banda</h3>
+    <div class="metric-card-sub">No depende del filtro de Level de arriba — el objetivo es comparar todos los levels entre sí. Clickeá uno o más levels a la izquierda para ver su evolución de % Saludable en el tiempo.</div>
+    <div class="lvl-gap-legend" id="lvl-gap-legend"></div>
+    <div id="metrics-levelgap-body"></div>
+    <div class="viz-chart-wrap" id="level-trend-wrap" hidden style="margin-top:18px">
+      <div class="metric-card-sub" style="margin-bottom:10px">Evolución mensual de % Saludable ±5% — todos los meses, ignora el filtro de Período de arriba</div>
+      <svg id="level-trend-chart-svg" viewBox="0 0 1000 340" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="viz-tooltip" id="level-trend-tooltip"></div>
+      <div class="viz-legend" id="level-trend-legend"></div>
+    </div>
+  </div>
+  <div class="metric-card metric-card-wide">
+    <h3>Casos de Performance Abiertos por Departamento</h3>
+    <div class="metric-card-sub" id="metrics-perfcases-sub"></div>
+    <div class="metric-body" id="metrics-perfcases-body"></div>
+  </div>
+  <div class="metric-card metric-card-wide metric-card-trend">
+    <h3>Evolución de Costo Promedio USD/H</h3>
+    <div class="metric-card-sub">Respeta los filtros de Departamento/Level de arriba — todos los meses, ignora el Período. Elegí ver por Departamento o por Level y seleccioná uno o más para comparar; sin selección, muestra el promedio general.</div>
+    <div class="chart-pill-row" id="avgcosto-mode"></div>
+    <div class="chart-pill-row" id="avgcosto-deptscope" hidden></div>
+    <div class="chart-pill-row" id="avgcosto-select"></div>
+    <div class="chart-pill-row" id="avgcosto-code-select" hidden></div>
+    <div class="viz-chart-wrap" id="avgcosto-chart-wrap">
+      <svg id="avgcosto-chart-svg" viewBox="0 0 1000 340" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="viz-tooltip" id="avgcosto-tooltip"></div>
+    </div>
+    <div class="viz-legend" id="avgcosto-legend"></div>
+  </div>
+  <div class="metric-card metric-card-wide metric-card-trend">
+    <h3>Costo Total por Cuenta / Proyecto (x168hs)</h3>
+    <div class="metric-card-sub" id="proj-cost-sub"></div>
+    <div class="proj-cost-tools">
+      <input type="search" class="proj-cost-search" id="proj-cost-search" placeholder="Buscar cuenta/proyecto…" oninput="setProjCostQuery(this.value)">
+      <div class="proj-cost-kpis" id="proj-cost-kpis"></div>
+    </div>
+    <div id="proj-cost-body"></div>
+  </div>
+  <div class="metric-card metric-card-wide metric-card-trend">
+    <h3>Costo Total por Departamento (x168hs)</h3>
+    <div class="metric-card-sub" id="dept-cost-sub">Top 6 departamentos por costo histórico + "Otros" — no depende del filtro de depto de arriba</div>
+    <div class="chart-pill-row" id="dept-cost-select"></div>
+    <div class="viz-chart-wrap" id="dept-cost-chart-wrap">
+      <svg id="dept-cost-chart-svg" viewBox="0 0 1000 340" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="viz-tooltip" id="dept-cost-tooltip"></div>
+    </div>
+    <div class="viz-legend" id="dept-cost-legend"></div>
+    <div class="metric-trend-wrap" style="margin-top:18px">
+      <table class="metric-trend-table">
+        <thead><tr id="metrics-dept-cost-head"></tr></thead>
+        <tbody id="metrics-dept-cost-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="metric-card metric-card-wide metric-card-trend">
+    <h3>Costo Total por Tipo de Agreement (x168hs)</h3>
+    <div class="metric-card-sub" id="metrics-agreement-cost-sub"></div>
+    <div class="viz-chart-wrap" id="agreement-cost-chart-wrap">
+      <svg id="agreement-cost-chart-svg" viewBox="0 0 1000 340" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="viz-tooltip" id="agreement-cost-tooltip"></div>
+    </div>
+    <div class="viz-legend" id="agreement-cost-legend"></div>
+    <div class="metric-trend-wrap" style="margin-top:18px">
+      <table class="metric-trend-table">
+        <thead><tr><th>Mes</th><th>Contractor</th><th>Plus Fijo</th><th>Empleado</th><th>Total</th></tr></thead>
+        <tbody id="metrics-agreement-cost-body"></tbody>
+      </table>
+    </div>
+  </div>
   <div class="metric-card metric-card-wide metric-card-trend">
     <h3>Evolución Mensual</h3>
     <div class="metric-card-sub" id="metrics-trend-sub"></div>
     <div class="metric-trend-wrap">
       <table class="metric-trend-table">
-        <thead><tr><th>Mes</th><th>Headcount</th><th>% Saludable ±5%</th><th>Costo a Mínimo</th></tr></thead>
+        <thead><tr><th>Mes</th><th>Headcount</th><th>% Saludable ±5%</th><th>Costo a Mínimo</th><th>Costo Total (x168hs)</th><th>Var. % vs mes ant.</th></tr></thead>
         <tbody id="metrics-trend-body"></tbody>
       </table>
     </div>
@@ -873,9 +1070,13 @@ function derivarMeses() {
     ML[m] = MONTH_NAMES[n] || m;
   });
 }
-const PS=100;
+const PS=200;
 const METRICS_TAB='__metricas__';
-let activeMonth='2026-01',sortCol='Code (Level)',sortDir=1,page=1,filtered=[],metricsDept='';
+// Vacío a propósito: initPills() cae al último mes de MONTHS la primera vez que corre
+// (ver "if(MONTHS.length && !MONTHS.includes(activeMonth))") — un valor hardcodeado como
+// '2026-01' rompía ese fallback apenas existiera data de enero, dejando el tablero entero
+// (tabla + Métricas) mostrando enero por defecto en cada carga en vez del mes más reciente.
+let activeMonth='',sortCol='Code (Level)',sortDir=1,page=1,filtered=[],metricsDept='',metricsLevel='';
 // Filtro por click en la stats-bar: gap ('en'|'encima'|'debajo'|null) y agreement
 // ('Contractor'|'Plus Fijo'|'Empleado'|null) son ejes independientes (AND entre ellos),
 // cada uno exclusivo dentro de su propio eje (clickear de nuevo el mismo lo apaga).
@@ -960,6 +1161,8 @@ function initDeptTabs(){
   const metricsTab=`<button type="button" class="dept-tab dept-tab-metrics${deptMode==='metrics'?' active':''}" data-dept="${METRICS_TAB}" onclick="selectMetricsTab()">📊 Métricas</button>`;
   bar.innerHTML=allTab+tabs+metricsTab;
   populateMetricsDeptFilter(depts);
+  populateMetricsLevelFilter();
+  populateMetricsPeriodFilters();
 }
 function populateMetricsDeptFilter(depts){
   const sel=document.getElementById('metrics-dept-filter');
@@ -972,6 +1175,102 @@ document.getElementById('metrics-dept-filter').addEventListener('change',functio
   metricsDept=this.value;
   applyFilters();
 });
+// Reusa mselOptions('level') (mismo Level normalizado a string que ya usa el filtro
+// table-only de Level) para que Métricas tenga su propio selector — el .msel de la
+// filter-bar se oculta en modo Métricas junto con el resto de table-only-filter.
+function populateMetricsLevelFilter(){
+  const sel=document.getElementById('metrics-level-filter');
+  if(!sel)return;
+  const list=mselOptions('level');
+  if(!list.includes(metricsLevel)) metricsLevel='';
+  sel.innerHTML=`<option value="">Todos</option>`+list.map(v=>`<option value="${v}"${v===metricsLevel?' selected':''}>${v}</option>`).join('');
+}
+document.getElementById('metrics-level-filter').addEventListener('change',function(){
+  metricsLevel=this.value;
+  applyFilters();
+});
+
+// ── Período (Mensual/Trimestral/Semestral) para las cards "de personas" de Métricas ──
+// Trimestral/Semestral agrupan varios meses de MONTHS; ver dedupeLatestPerPerson() para
+// cómo se evita contar 2-3 veces a la misma persona cuando el período abarca >1 mes.
+const QUARTER_MONTHS={1:[1,2,3],2:[4,5,6],3:[7,8,9],4:[10,11,12]};
+const SEMESTER_MONTHS={1:[1,2,3,4,5,6],2:[7,8,9,10,11,12]};
+const QUARTER_LABELS={1:'Q1 (Ene-Mar)',2:'Q2 (Abr-Jun)',3:'Q3 (Jul-Sep)',4:'Q4 (Oct-Dic)'};
+const SEMESTER_LABELS={1:'S1 (Ene-Jun)',2:'S2 (Jul-Dic)'};
+let metricsPeriodMode='month'; // 'month' | 'quarter' | 'semester'
+let metricsQuarter=null, metricsSemester=null;
+function monthNum(m){ return parseInt((m||'').slice(5,7),10); }
+function populateMetricsPeriodFilters(){
+  const modeSel=document.getElementById('metrics-period-mode');
+  if(!modeSel)return;
+  modeSel.value=metricsPeriodMode;
+  populateMetricsPeriodValue();
+}
+function populateMetricsPeriodValue(){
+  const valSel=document.getElementById('metrics-period-value');
+  if(!valSel)return;
+  const present=new Set(MONTHS.map(monthNum));
+  if(metricsPeriodMode==='quarter'){
+    const avail=[1,2,3,4].filter(q=>QUARTER_MONTHS[q].some(mn=>present.has(mn)));
+    if(!avail.includes(metricsQuarter)) metricsQuarter=avail.length?avail[avail.length-1]:null;
+    valSel.hidden=false;
+    valSel.innerHTML=avail.map(q=>`<option value="${q}"${q===metricsQuarter?' selected':''}>${QUARTER_LABELS[q]}</option>`).join('');
+  }else if(metricsPeriodMode==='semester'){
+    const avail=[1,2].filter(s=>SEMESTER_MONTHS[s].some(mn=>present.has(mn)));
+    if(!avail.includes(metricsSemester)) metricsSemester=avail.length?avail[avail.length-1]:null;
+    valSel.hidden=false;
+    valSel.innerHTML=avail.map(s=>`<option value="${s}"${s===metricsSemester?' selected':''}>${SEMESTER_LABELS[s]}</option>`).join('');
+  }else{
+    valSel.hidden=true;
+    valSel.innerHTML='';
+  }
+  syncMonthPillsVisibility();
+}
+function syncMonthPillsVisibility(){
+  const hide=deptMode==='metrics'&&metricsPeriodMode!=='month';
+  const lbl=document.getElementById('mes-label'), pills=document.getElementById('month-pills');
+  if(lbl)lbl.style.display=hide?'none':'';
+  if(pills)pills.style.display=hide?'none':'';
+}
+document.getElementById('metrics-period-mode').addEventListener('change',function(){
+  metricsPeriodMode=this.value;
+  populateMetricsPeriodValue();
+  applyFilters();
+});
+document.getElementById('metrics-period-value').addEventListener('change',function(){
+  const v=parseInt(this.value,10);
+  if(metricsPeriodMode==='quarter')metricsQuarter=v;
+  else if(metricsPeriodMode==='semester')metricsSemester=v;
+  applyFilters();
+});
+// Meses de MONTHS que caen dentro del período activo — [] activeMonth si es 'month'.
+function activePeriodMonths(){
+  if(metricsPeriodMode==='quarter'&&metricsQuarter){
+    const mm=QUARTER_MONTHS[metricsQuarter];
+    return MONTHS.filter(m=>mm.includes(monthNum(m)));
+  }
+  if(metricsPeriodMode==='semester'&&metricsSemester){
+    const mm=SEMESTER_MONTHS[metricsSemester];
+    return MONTHS.filter(m=>mm.includes(monthNum(m)));
+  }
+  return activeMonth?[activeMonth]:[];
+}
+function periodLabel(){
+  if(metricsPeriodMode==='quarter'&&metricsQuarter)return QUARTER_LABELS[metricsQuarter];
+  if(metricsPeriodMode==='semester'&&metricsSemester)return SEMESTER_LABELS[metricsSemester];
+  return ML[activeMonth]||activeMonth;
+}
+// Cuando el período abarca >1 mes, cada persona puede tener una fila por mes — se queda
+// solo con la más reciente dentro del período ("última foto"), para no triplicar conteos.
+function dedupeLatestPerPerson(rows){
+  const byPerson={};
+  rows.forEach(d=>{
+    const key=d['Employee #']||d['Last name, First name'];
+    const cur=byPerson[key];
+    if(!cur||d.Month>cur.Month)byPerson[key]=d;
+  });
+  return Object.values(byPerson);
+}
 function syncDeptTabsUI(){
   document.querySelectorAll('#dept-bar .dept-tab').forEach(b=>{
     const dp=b.dataset.dept;
@@ -1018,8 +1317,9 @@ const MSEL_CONFIGS={
   // texto en las que tienen un override manual como "08"/"assistant") — normalizar a
   // string acá para que el filtro compare siempre lo mismo (ver applyFilters).
   level:  { getField:d=>(d.Seniority===''||d.Seniority==null)?'':String(d.Seniority), staticOptions:null, noun:'levels' },
+  proj:   { getField:d=>d['Account / Proyecto'], staticOptions:null, noun:'proyectos' },
 };
-const mselSelected={code:new Set(),ag:new Set(),xm:new Set(),gap:new Set(),level:new Set()};
+const mselSelected={code:new Set(),ag:new Set(),xm:new Set(),gap:new Set(),level:new Set(),proj:new Set()};
 
 function mselOptions(key){
   const cfg=MSEL_CONFIGS[key];
@@ -1107,6 +1407,7 @@ document.getElementById('search').addEventListener('input',applyFilters);
 
 function updateViewMode(){
   document.body.classList.toggle('metrics-mode', deptMode==='metrics');
+  syncMonthPillsVisibility();
 }
 
 function applyFilters(){
@@ -1121,11 +1422,12 @@ function applyFilters(){
     if(mselSelected.xm.size&&!mselSelected.xm.has(d.xM))return false;
     if(mselSelected.gap.size&&!mselSelected.gap.has(d['% GAP Banda']))return false;
     if(mselSelected.level.size&&!mselSelected.level.has(String(d.Seniority)))return false;
+    if(mselSelected.proj.size&&!mselSelected.proj.has(d['Account / Proyecto']))return false;
     if(statFilter.gap==='en'&&d['% GAP Banda']!=='En banda')return false;
     if(statFilter.gap==='encima'&&!(d['% GAP Banda']||'').startsWith('Encima'))return false;
     if(statFilter.gap==='debajo'&&!(d['% GAP Banda']||'').startsWith('Debajo'))return false;
     if(statFilter.agreement&&d.Agreement!==statFilter.agreement)return false;
-    if(q){const h=[d['Last name, First name'],d.Department,d['Code (Level)'],d.xM,d['New Code']].join(' ').toLowerCase();if(!h.includes(q))return false;}
+    if(q){const h=[d['Last name, First name'],d.Department,d['Code (Level)'],d.xM,d['New Code'],d['Account / Proyecto']].join(' ').toLowerCase();if(!h.includes(q))return false;}
     return true;
   });
   page=1;renderStats();renderTable();renderPag();
@@ -1149,10 +1451,20 @@ const AJUSTE_METRIC_COLOR={
   'Sin ajuste desde ingreso':'gr',
 };
 
-function metricsFilteredData(){
-  return ALL_DATA.filter(d=>{
-    if(d.Month!==activeMonth)return false;
+// Base sin Level — la usa también el cruce Nivel vs GAP Banda, que a propósito ignora
+// metricsLevel (necesita ver todos los levels juntos para poder compararlos).
+function metricsFilteredDataBase(){
+  const months=activePeriodMonths();
+  const rows=ALL_DATA.filter(d=>{
+    if(!months.includes(d.Month))return false;
     if(metricsDept&&d.Department!==metricsDept)return false;
+    return true;
+  });
+  return months.length>1?dedupeLatestPerPerson(rows):rows;
+}
+function metricsFilteredData(){
+  return metricsFilteredDataBase().filter(d=>{
+    if(metricsLevel&&String(d.Seniority)!==metricsLevel)return false;
     return true;
   });
 }
@@ -1170,6 +1482,327 @@ function costoAMinimo(rows){
   },0);
 }
 
+const HORAS_MES=168;
+function costoTotalDelMes(rows){
+  return rows.reduce((acc,d)=>{
+    const c=parseFloat(d['Costo USD/H']);
+    return isNaN(c)?acc:acc+c;
+  },0)*HORAS_MES;
+}
+function fmtUsd(n){
+  return '$'+n.toLocaleString('es-AR',{maximumFractionDigits:0});
+}
+function fmtUsdCompact(n){
+  if(n>=1e6)return'$'+(n/1e6).toFixed(1).replace(/\.0$/,'')+'M';
+  if(n>=1e3)return'$'+Math.round(n/1e3)+'K';
+  return'$'+Math.round(n);
+}
+
+// ── Gráficos de barras apiladas (Costo por Departamento / por Agreement) ──
+// Sin librería externa (consistente con el resto de esta app) — SVG a mano, geometría en
+// una viewBox fija de 1000x340 que escala sola por CSS (width:100%). Paleta categórica
+// tomada del set validado de 8 hues (orden fijo blue/orange/aqua/yellow/magenta/green/
+// violet/red, ver skill de dataviz) — la marca "Making Sense" (verde/azul/rojo/naranja) no
+// alcanza para 6+ series sin repetir un color que ya significa "en banda"/"alerta" en el
+// resto de la página, así que estos charts usan su propia paleta de identidad, separada de
+// los colores de estado (gg/gy/go/gr) que sí se siguen usando en Distribución en Banda y
+// Nivel vs GAP Banda.
+const CHART_PALETTE=['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300'];
+const CHART_OTHER_COLOR='#BDBDBD'; // mismo gris que .metric-fill-neutral, para "Otros"/"Sin dato"
+
+function niceMax(v){
+  if(v<=0)return 100;
+  const mag=Math.pow(10,Math.floor(Math.log10(v)));
+  const norm=v/mag;
+  const nice=norm<=1?1:(norm<=2?2:(norm<=5?5:10));
+  return nice*mag;
+}
+function roundedTopRectPath(x,y,w,h,r){
+  r=Math.max(0,Math.min(r,w/2,h));
+  if(r<=0)return`M${x},${y+h} L${x},${y} L${x+w},${y} L${x+w},${y+h} Z`;
+  return`M${x},${y+h} L${x},${y+r} Q${x},${y} ${x+r},${y} L${x+w-r},${y} Q${x+w},${y} ${x+w},${y+r} L${x+w},${y+h} Z`;
+}
+
+// data: [{month,label,total,values:{seriesKey:num}}]; series: [{key,label,color}] en el
+// MISMO orden en que se apilan (el orden de apilado es el orden de asignación de color, así
+// los pares "adyacentes" en el chart coinciden con los pares ya validados de la paleta).
+function renderStackedBarChart(cfg){
+  const {svgId,legendId,tooltipId,data,series}=cfg;
+  const svg=document.getElementById(svgId);
+  const legend=document.getElementById(legendId);
+  const tooltip=document.getElementById(tooltipId);
+  if(!svg)return;
+  legend.innerHTML=series.map(s=>`<div class="viz-legend-item"><span class="viz-legend-swatch" style="background:${s.color}"></span>${s.label}</div>`).join('');
+  if(!data.length){ svg.innerHTML=''; return; }
+
+  const VB_W=1000,VB_H=340;
+  const MG={top:30,right:12,bottom:40,left:60};
+  const plotW=VB_W-MG.left-MG.right, plotH=VB_H-MG.top-MG.bottom;
+  const maxTotal=Math.max(...data.map(d=>d.total),0);
+  const yMax=niceMax(maxTotal*1.15);
+  const n=data.length;
+  const band=plotW/n;
+  const barW=Math.max(10,Math.min(26,band*0.5));
+  const yFor=v=>MG.top+plotH-(yMax?v/yMax:0)*plotH;
+  const baseline=MG.top+plotH;
+
+  const parts=[];
+  const steps=4;
+  for(let i=0;i<=steps;i++){
+    const v=yMax*i/steps, y=yFor(v);
+    parts.push(`<line class="viz-gridline" x1="${MG.left}" y1="${y}" x2="${VB_W-MG.right}" y2="${y}"/>`);
+    parts.push(`<text class="viz-axis-label" x="${MG.left-8}" y="${y+3}" text-anchor="end">${fmtUsdCompact(v)}</text>`);
+  }
+
+  data.forEach((d,i)=>{
+    const x=MG.left+i*band+(band-barW)/2;
+    const visibleIdx=[];
+    series.forEach((s,si)=>{ if((d.values[s.key]||0)>0)visibleIdx.push(si); });
+    const firstV=visibleIdx[0], lastV=visibleIdx[visibleIdx.length-1];
+    let cum=0;
+    const segs=[];
+    series.forEach((s,si)=>{
+      const val=d.values[s.key]||0;
+      if(val<=0)return;
+      const y1=yFor(cum+val), y0=yFor(cum);
+      const topInset=si<lastV?1:0, botInset=si>firstV?1:0;
+      const yy=y1+topInset, hh=Math.max(0,(y0-botInset)-yy);
+      if(si===lastV) segs.push(`<path class="viz-seg" d="${roundedTopRectPath(x,yy,barW,hh,4)}" fill="${s.color}"/>`);
+      else segs.push(`<rect class="viz-seg" x="${x}" y="${yy}" width="${barW}" height="${hh}" fill="${s.color}"/>`);
+      cum+=val;
+    });
+    const totalY=yFor(d.total);
+    segs.push(`<text class="viz-total-label" x="${x+barW/2}" y="${Math.max(MG.top+8,totalY-7)}" text-anchor="middle">${fmtUsdCompact(d.total)}</text>`);
+    segs.push(`<text class="viz-month-label" x="${x+barW/2}" y="${baseline+18}" text-anchor="middle">${d.label}</text>`);
+    parts.push(`<g class="viz-bar-col" tabindex="0" role="img" aria-label="${d.label}: total ${fmtUsd(d.total)}" data-idx="${i}">
+      <rect class="viz-hit" x="${MG.left+i*band}" y="${MG.top}" width="${band}" height="${plotH}" fill="transparent"/>
+      ${segs.join('')}
+    </g>`);
+  });
+
+  svg.innerHTML=parts.join('');
+
+  const wrap=svg.closest('.viz-chart-wrap');
+  svg.querySelectorAll('.viz-bar-col').forEach(col=>{
+    const d=data[+col.dataset.idx];
+    const show=(clientX,clientY)=>{
+      const r=wrap.getBoundingClientRect();
+      const rows=series.filter(s=>(d.values[s.key]||0)>0)
+        .sort((a,b)=>(d.values[b.key]||0)-(d.values[a.key]||0))
+        .map(s=>`<div class="viz-tooltip-row"><span class="viz-tooltip-key"><span class="viz-tooltip-swatch" style="background:${s.color}"></span>${s.label}</span><span class="viz-tooltip-val">${fmtUsd(d.values[s.key])}</span></div>`).join('');
+      tooltip.innerHTML=`<div class="viz-tooltip-title">${d.label} — Total ${fmtUsd(d.total)}</div>${rows}`;
+      tooltip.style.left=(clientX-r.left)+'px';
+      tooltip.style.top=(clientY-r.top-10)+'px';
+      tooltip.classList.add('show');
+    };
+    const hide=()=>tooltip.classList.remove('show');
+    col.addEventListener('pointerenter',e=>show(e.clientX,e.clientY));
+    col.addEventListener('pointermove',e=>show(e.clientX,e.clientY));
+    col.addEventListener('pointerleave',hide);
+    col.addEventListener('focus',()=>{
+      const hr=col.querySelector('.viz-hit').getBoundingClientRect();
+      show(hr.left+hr.width/2,hr.top);
+    });
+    col.addEventListener('blur',hide);
+  });
+}
+
+// Gráfico de líneas genérico — se usa cuando el usuario selecciona 1+ items puntuales (deptos,
+// tipos de agreement, levels) para comparar en el tiempo, en vez de ver la composición completa
+// apilada. Misma viewBox/ejes/tooltip-por-columna que renderStackedBarChart, pero cada serie es
+// una línea (no un segmento apilado) — no hay "total" por mes, cada línea es independiente.
+// data: [{month,label,values:{seriesKey:num}}]; series: [{key,label,color}] ya filtradas a las
+// seleccionadas. `yFmt` (opcional) formatea los valores del eje Y y el tooltip — default $ (USD
+// compacto); se pasa un formateador de % para el trend de Nivel vs GAP Banda.
+function renderLineChart(cfg){
+  const {svgId,legendId,tooltipId,data,series}=cfg;
+  const yFmt=cfg.yFmt||fmtUsdCompact;
+  const svg=document.getElementById(svgId);
+  const legend=document.getElementById(legendId);
+  const tooltip=document.getElementById(tooltipId);
+  if(!svg)return;
+  if(legend)legend.innerHTML=series.map(s=>`<div class="viz-legend-item"><span class="viz-legend-swatch" style="background:${s.color}"></span>${s.label}</div>`).join('');
+  if(!data.length||!series.length){ svg.innerHTML=''; return; }
+
+  const VB_W=1000,VB_H=340;
+  const MG={top:24,right:16,bottom:40,left:60};
+  const plotW=VB_W-MG.left-MG.right, plotH=VB_H-MG.top-MG.bottom;
+  let maxV=0;
+  data.forEach(d=>series.forEach(s=>{ maxV=Math.max(maxV,d.values[s.key]||0); }));
+  const yMax=niceMax(maxV*1.15);
+  const n=data.length;
+  const xFor=i=>n<=1?MG.left+plotW/2:MG.left+i*(plotW/(n-1));
+  const yFor=v=>MG.top+plotH-(yMax?v/yMax:0)*plotH;
+  const baseline=MG.top+plotH;
+
+  const parts=[];
+  const steps=4;
+  for(let i=0;i<=steps;i++){
+    const v=yMax*i/steps,y=yFor(v);
+    parts.push(`<line class="viz-gridline" x1="${MG.left}" y1="${y}" x2="${VB_W-MG.right}" y2="${y}"/>`);
+    parts.push(`<text class="viz-axis-label" x="${MG.left-8}" y="${y+3}" text-anchor="end">${yFmt(v)}</text>`);
+  }
+  data.forEach((d,i)=>{
+    parts.push(`<text class="viz-month-label" x="${xFor(i)}" y="${baseline+18}" text-anchor="middle">${d.label}</text>`);
+  });
+
+  series.forEach(s=>{
+    const pts=data.map((d,i)=>[xFor(i),yFor(d.values[s.key]||0)]);
+    const path=pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+    parts.push(`<path fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" d="${path}"/>`);
+    pts.forEach(p=>parts.push(`<circle class="viz-line-dot" cx="${p[0]}" cy="${p[1]}" r="4" fill="${s.color}" stroke="var(--bg-1)" stroke-width="2"/>`));
+    const last=pts[pts.length-1];
+    const lastVal=data[data.length-1].values[s.key]||0;
+    const anchor=last[0]>VB_W-140?'end':'start';
+    parts.push(`<text class="viz-total-label" x="${last[0]+(anchor==='end'?-8:8)}" y="${Math.max(MG.top+8,last[1]-8)}" text-anchor="${anchor}" style="fill:${s.color}">${yFmt(lastVal)}</text>`);
+  });
+
+  data.forEach((d,i)=>{
+    const cx=xFor(i), hitW=n<=1?plotW:plotW/(n-1);
+    parts.push(`<g class="viz-bar-col" tabindex="0" role="img" aria-label="${d.label}" data-idx="${i}">
+      <rect class="viz-hit" x="${cx-hitW/2}" y="${MG.top}" width="${hitW}" height="${plotH}" fill="transparent"/>
+    </g>`);
+  });
+
+  svg.innerHTML=parts.join('');
+
+  const wrap=svg.closest('.viz-chart-wrap');
+  svg.querySelectorAll('.viz-bar-col').forEach(col=>{
+    const d=data[+col.dataset.idx];
+    const show=(clientX,clientY)=>{
+      const r=wrap.getBoundingClientRect();
+      const rows=series.map(s=>`<div class="viz-tooltip-row"><span class="viz-tooltip-key"><span class="viz-tooltip-swatch" style="background:${s.color}"></span>${s.label}</span><span class="viz-tooltip-val">${yFmt(d.values[s.key]||0)}</span></div>`).join('');
+      tooltip.innerHTML=`<div class="viz-tooltip-title">${d.label}</div>${rows}`;
+      tooltip.style.left=(clientX-r.left)+'px';
+      tooltip.style.top=(clientY-r.top-10)+'px';
+      tooltip.classList.add('show');
+    };
+    const hide=()=>tooltip.classList.remove('show');
+    col.addEventListener('pointerenter',e=>show(e.clientX,e.clientY));
+    col.addEventListener('pointermove',e=>show(e.clientX,e.clientY));
+    col.addEventListener('pointerleave',hide);
+    col.addEventListener('focus',()=>{
+      const hr=col.querySelector('.viz-hit').getBoundingClientRect();
+      show(hr.left+hr.width/2,hr.top);
+    });
+    col.addEventListener('blur',hide);
+  });
+}
+
+// Top 6 departamentos por costo histórico acumulado (todo ALL_DATA, se calcula una sola vez
+// al cargar) + "Otros" agrupa el resto — 12 deptos reales excede el techo de una paleta
+// categórica (7-8 series), y el orden queda FIJO una vez calculado para que el mismo depto
+// siempre ocupe el mismo color/posición en la pila mes a mes (nunca se re-ordena por mes).
+let TOP_DEPTS=[];
+function computeTopDepts(){
+  const totals={};
+  ALL_DATA.forEach(d=>{
+    const dep=d.Department; if(!dep)return;
+    const c=parseFloat(d['Costo USD/H']);
+    if(isNaN(c))return;
+    totals[dep]=(totals[dep]||0)+c;
+  });
+  TOP_DEPTS=Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0,6).map(e=>e[0]);
+}
+function deptChartSeries(){
+  return TOP_DEPTS.map((dp,i)=>({key:dp,label:dp.replace(/^MS - /,''),color:CHART_PALETTE[i]||CHART_OTHER_COLOR}))
+    .concat([{key:'__otros__',label:'Otros',color:CHART_OTHER_COLOR}]);
+}
+function deptChartData(){
+  const series=deptChartSeries();
+  return MONTHS.map(m=>{
+    const rows=ALL_DATA.filter(d=>d.Month===m);
+    const values={};
+    let topSum=0;
+    series.forEach(s=>{
+      if(s.key==='__otros__')return;
+      const v=costoTotalDelMes(rows.filter(d=>d.Department===s.key));
+      values[s.key]=v; topSum+=v;
+    });
+    const total=costoTotalDelMes(rows);
+    values['__otros__']=Math.max(0,total-topSum);
+    return {month:m,label:ML[m]||m,total,values};
+  });
+}
+// Selección puntual de deptos para comparar como líneas — independiente de TOP_DEPTS (acá se
+// puede elegir cualquier depto real, incluso uno que en la vista apilada caería en "Otros").
+let selectedDeptChartItems=new Set();
+function renderDeptChartSelector(){
+  const el=document.getElementById('dept-cost-select');
+  if(!el)return;
+  const depts=[...new Set(ALL_DATA.map(d=>d.Department).filter(Boolean))].sort();
+  el.innerHTML=depts.map(dp=>`<button type="button" class="chart-pill${selectedDeptChartItems.has(dp)?' active':''}" onclick="toggleDeptChartItem('${dp.replace(/'/g,"\\'")}')">${dp.replace(/^MS - /,'')}</button>`).join('');
+}
+window.toggleDeptChartItem=function(dp){
+  if(selectedDeptChartItems.has(dp))selectedDeptChartItems.delete(dp);else selectedDeptChartItems.add(dp);
+  renderDeptCostChart();
+};
+function renderDeptCostChart(){
+  renderDeptChartSelector();
+  const sub=document.getElementById('dept-cost-sub');
+  if(selectedDeptChartItems.size){
+    const depts=[...selectedDeptChartItems].sort();
+    const series=depts.map((dp,i)=>({key:dp,label:dp.replace(/^MS - /,''),color:CHART_PALETTE[i%CHART_PALETTE.length]}));
+    const data=MONTHS.map(m=>{
+      const rows=ALL_DATA.filter(d=>d.Month===m);
+      const values={};
+      series.forEach(s=>{ values[s.key]=costoTotalDelMes(rows.filter(d=>d.Department===s.key)); });
+      return {month:m,label:ML[m]||m,values};
+    });
+    if(sub)sub.textContent=`Comparando ${depts.length} departamento${depts.length===1?'':'s'} seleccionado${depts.length===1?'':'s'} — clickealos de nuevo para volver a la vista apilada`;
+    renderLineChart({svgId:'dept-cost-chart-svg',legendId:'dept-cost-legend',tooltipId:'dept-cost-tooltip',data,series});
+  }else{
+    if(sub)sub.textContent='Top 6 departamentos por costo histórico + "Otros" — no depende del filtro de depto de arriba';
+    renderStackedBarChart({svgId:'dept-cost-chart-svg',legendId:'dept-cost-legend',tooltipId:'dept-cost-tooltip',data:deptChartData(),series:deptChartSeries()});
+  }
+}
+
+const AGREEMENT_CHART_COLORS={'Contractor':CHART_PALETTE[0],'Plus Fijo':CHART_PALETTE[1],'Empleado':CHART_PALETTE[2]};
+function agreementChartSeries(){
+  return AGREEMENT_COST_TYPES.map(ag=>({key:ag,label:ag,color:AGREEMENT_CHART_COLORS[ag]}));
+}
+function agreementChartData(){
+  const series=agreementChartSeries();
+  return MONTHS.map(m=>{
+    const rows=ALL_DATA.filter(d=>d.Month===m && (!metricsDept||d.Department===metricsDept));
+    const values={};
+    series.forEach(s=>{ values[s.key]=costoTotalDelMes(rows.filter(d=>d.Agreement===s.key)); });
+    const total=costoTotalDelMes(rows);
+    return {month:m,label:ML[m]||m,total,values};
+  });
+}
+// A diferencia de Depto (12 valores reales, necesita un selector aparte), acá solo hay 3 valores
+// posibles y SIEMPRE se muestran todos — la leyenda misma es el selector clickeable.
+let selectedAgreementChartItems=new Set();
+function renderAgreementSelector(){
+  const el=document.getElementById('agreement-cost-legend');
+  if(!el)return;
+  el.innerHTML=AGREEMENT_COST_TYPES.map(t=>{
+    const active=selectedAgreementChartItems.has(t);
+    return `<button type="button" class="viz-legend-btn${active?' active':''}" onclick="toggleAgreementChartItem('${t}')"><span class="viz-legend-swatch" style="background:${AGREEMENT_CHART_COLORS[t]}"></span>${t}</button>`;
+  }).join('');
+}
+window.toggleAgreementChartItem=function(t){
+  if(selectedAgreementChartItems.has(t))selectedAgreementChartItems.delete(t);else selectedAgreementChartItems.add(t);
+  renderAgreementCostChart();
+};
+function renderAgreementCostChart(){
+  if(selectedAgreementChartItems.size){
+    const types=AGREEMENT_COST_TYPES.filter(t=>selectedAgreementChartItems.has(t));
+    const series=types.map(t=>({key:t,label:t,color:AGREEMENT_CHART_COLORS[t]}));
+    const data=MONTHS.map(m=>{
+      const rows=ALL_DATA.filter(d=>d.Month===m && (!metricsDept||d.Department===metricsDept));
+      const values={};
+      series.forEach(s=>{ values[s.key]=costoTotalDelMes(rows.filter(d=>d.Agreement===s.key)); });
+      return {month:m,label:ML[m]||m,values};
+    });
+    renderLineChart({svgId:'agreement-cost-chart-svg',legendId:'agreement-cost-legend',tooltipId:'agreement-cost-tooltip',data,series});
+  }else{
+    renderStackedBarChart({svgId:'agreement-cost-chart-svg',legendId:'agreement-cost-legend',tooltipId:'agreement-cost-tooltip',data:agreementChartData(),series:agreementChartSeries()});
+  }
+  renderAgreementSelector();
+}
+
 // Evolución mensual: cada mes ya es una fila histórica propia en el sheet (una carga de
 // actualizar_mes_sheets.py), así que calcular esto en vivo desde ALL_DATA ya deja fijos los
 // meses cerrados sin necesidad de guardar ningún snapshot aparte — solo el último mes
@@ -1178,25 +1811,78 @@ function renderMetricsTrend(){
   const tbody=document.getElementById('metrics-trend-body');
   const sub=document.getElementById('metrics-trend-sub');
   sub.textContent=metricsDept||'Todos los departamentos';
-  if(!MONTHS.length){ tbody.innerHTML='<tr><td colspan="4" class="metric-empty" style="font-family:var(--font-sans)">Sin datos</td></tr>'; return; }
+  if(!MONTHS.length){ tbody.innerHTML='<tr><td colspan="6" class="metric-empty" style="font-family:var(--font-sans)">Sin datos</td></tr>'; return; }
   const lastMonth=MONTHS[MONTHS.length-1];
+  let prevCostoTotal=null;
   tbody.innerHTML=MONTHS.map(m=>{
     const rows=ALL_DATA.filter(d=>d.Month===m && (!metricsDept||d.Department===metricsDept));
     const total=rows.length;
     const healthy=rows.filter(d=>SALUDABLE_GAP_SET.has(d['% GAP Banda'])).length;
     const pctSaludable=total?(healthy/total*100).toFixed(1)+'%':'—';
     const costoMin=costoAMinimo(rows);
+    const costoTotal=costoTotalDelMes(rows);
+    let varHtml='<span class="metric-var-na">—</span>';
+    if(prevCostoTotal!==null&&prevCostoTotal>0){
+      const varPct=(costoTotal-prevCostoTotal)/prevCostoTotal*100;
+      const cls=varPct>0?'metric-var-up':(varPct<0?'metric-var-down':'metric-var-flat');
+      varHtml=`<span class="${cls}">${varPct>0?'+':''}${varPct.toFixed(1)}%</span>`;
+    }
+    prevCostoTotal=costoTotal;
     const liveBadge=m===lastMonth?'<span class="metric-live-badge">En curso</span>':'';
     return `<tr>
       <td>${ML[m]||m}${liveBadge}</td>
       <td>${total}</td>
       <td>${pctSaludable}</td>
       <td>$${costoMin.toFixed(1)}</td>
+      <td>${fmtUsd(costoTotal)}</td>
+      <td>${varHtml}</td>
     </tr>`;
   }).join('');
 }
 
-function metricBars(data,field,order,colorFn,labelFn){
+// Costo total por Departamento, mes a mes — siempre todos los deptos juntos (ignora
+// metricsDept a propósito: el objetivo es comparar deptos entre sí, filtrar a uno solo
+// dejaría la tabla con una sola columna útil).
+function renderDeptCostTrend(){
+  const theadRow=document.getElementById('metrics-dept-cost-head');
+  const tbody=document.getElementById('metrics-dept-cost-body');
+  const depts=[...new Set(ALL_DATA.map(d=>d.Department).filter(Boolean))].sort();
+  theadRow.innerHTML='<th>Mes</th>'+depts.map(dp=>`<th>${dp}</th>`).join('')+'<th>Total</th>';
+  if(!MONTHS.length){
+    tbody.innerHTML=`<tr><td colspan="${depts.length+2}" class="metric-empty" style="font-family:var(--font-sans)">Sin datos</td></tr>`;
+    return;
+  }
+  const lastMonth=MONTHS[MONTHS.length-1];
+  tbody.innerHTML=MONTHS.map(m=>{
+    const monthRows=ALL_DATA.filter(d=>d.Month===m);
+    const liveBadge=m===lastMonth?'<span class="metric-live-badge">En curso</span>':'';
+    const cells=depts.map(dp=>{
+      const c=costoTotalDelMes(monthRows.filter(d=>d.Department===dp));
+      return `<td>${c?fmtUsd(c):'<span style="color:var(--tbl-text3)">—</span>'}</td>`;
+    }).join('');
+    return `<tr><td>${ML[m]||m}${liveBadge}</td>${cells}<td style="font-weight:700">${fmtUsd(costoTotalDelMes(monthRows))}</td></tr>`;
+  }).join('');
+}
+
+// Costo total por tipo de Agreement, mes a mes — respeta metricsDept (a diferencia de la
+// tabla por Departamento) porque acá tiene sentido ver la mezcla Contractor/Plus Fijo/
+// Empleado dentro de un depto puntual.
+const AGREEMENT_COST_TYPES=['Contractor','Plus Fijo','Empleado'];
+function renderAgreementCostTrend(){
+  const tbody=document.getElementById('metrics-agreement-cost-body');
+  const sub=document.getElementById('metrics-agreement-cost-sub');
+  sub.textContent=metricsDept||'Todos los departamentos';
+  if(!MONTHS.length){ tbody.innerHTML='<tr><td colspan="5" class="metric-empty" style="font-family:var(--font-sans)">Sin datos</td></tr>'; return; }
+  const lastMonth=MONTHS[MONTHS.length-1];
+  tbody.innerHTML=MONTHS.map(m=>{
+    const monthRows=ALL_DATA.filter(d=>d.Month===m && (!metricsDept||d.Department===metricsDept));
+    const liveBadge=m===lastMonth?'<span class="metric-live-badge">En curso</span>':'';
+    const cells=AGREEMENT_COST_TYPES.map(ag=>fmtUsd(costoTotalDelMes(monthRows.filter(d=>d.Agreement===ag)))).map(v=>`<td>${v}</td>`).join('');
+    return `<tr><td>${ML[m]||m}${liveBadge}</td>${cells}<td style="font-weight:700">${fmtUsd(costoTotalDelMes(monthRows))}</td></tr>`;
+  }).join('');
+}
+
+function metricBars(data,field,order,colorFn,labelFn,cardLabel){
   const total=data.length;
   const counts={};
   order.forEach(k=>counts[k]=0);
@@ -1206,32 +1892,586 @@ function metricBars(data,field,order,colorFn,labelFn){
     if(v&&Object.prototype.hasOwnProperty.call(counts,v))counts[v]++;
     else sinDato++;
   });
-  const rows=order.map(k=>({label:labelFn(k),count:counts[k],cls:'metric-fill-'+colorFn(k)}));
-  rows.push({label:'Sin dato',count:sinDato,cls:'metric-fill-neutral'});
+  const rows=order.map(k=>({key:k,label:labelFn(k),count:counts[k],cls:'metric-fill-'+colorFn(k)}));
+  rows.push({key:'__sindato__',label:'Sin dato',count:sinDato,cls:'metric-fill-neutral'});
   return rows.map(r=>{
     const pct=total?(r.count/total*100):0;
+    const onclick=`showCategoryPeople(this,'${String(field).replace(/'/g,"\\'")}','${String(r.key).replace(/'/g,"\\'")}','${cardLabel.replace(/'/g,"\\'")}')`;
     return `<div class="metric-row">
       <div class="metric-label">${r.label}</div>
       <div class="metric-bar-track"><div class="metric-bar-fill ${r.cls}" style="width:${pct.toFixed(1)}%"></div></div>
-      <div class="metric-count">${r.count} <span class="metric-pct">(${pct.toFixed(1)}%)</span></div>
+      <div class="metric-count"><button type="button" class="count-btn" onclick="${onclick}">${r.count}</button> <span class="metric-pct">(${pct.toFixed(1)}%)</span></div>
     </div>`;
   }).join('');
 }
 
+// Nivel (Level) vs GAP Banda: una barra divergente por level centrada en "En banda" (debajo
+// a la izquierda, encima a la derecha, escala común a todos los levels) + % Saludable —
+// deja ver de un vistazo si los levels senior están sistemáticamente más lejos de banda
+// que los junior. Usa metricsFilteredDataBase() (mes + depto, SIN metricsLevel) a propósito:
+// filtrar por un level dejaría un solo renglón, perdiendo la comparación entre levels.
+// Paleta divergente propia de esta card: azul = debajo, naranja/rojo = encima, más oscuro =
+// más lejos de banda. La de Distribución en Banda (gg/gy/go/gr) pinta igual "-15%" y "+15%",
+// y acá eso hacía imposible distinguir de qué lado está cada level. "En banda" sigue verde
+// como en el resto de la página. Orden de los arrays: del centro hacia afuera.
+const LVL_GAP_BELOW=['Debajo de 0% a -5%','Debajo de -5% y -15%','Debajo de -15%'];
+const LVL_GAP_ABOVE=['Encima del 0% y 5%','Encima del 5% y 15%','Encima del 15%'];
+const LVL_GAP_COLORS={
+  'Debajo de -15%':      {bg:'#1F5FAE',ink:'light'},
+  'Debajo de -5% y -15%':{bg:'#5B9BE0',ink:'dark'},
+  'Debajo de 0% a -5%':  {bg:'#A8C8EE',ink:'dark'},
+  'En banda':            {bg:'#0ECC7E',ink:'dark'},
+  'Encima del 0% y 5%':  {bg:'#F6C3A8',ink:'dark'},
+  'Encima del 5% y 15%': {bg:'#EB6834',ink:'dark'},
+  'Encima del 15%':      {bg:'#B23A12',ink:'light'},
+};
+const LVL_GAP_SHORT={
+  'Debajo de -15%':'< -15%','Debajo de -5% y -15%':'-5 a -15%','Debajo de 0% a -5%':'0 a -5%',
+  'En banda':'En banda',
+  'Encima del 0% y 5%':'0 a +5%','Encima del 5% y 15%':'+5 a +15%','Encima del 15%':'> +15%',
+};
+function levelSortKey(v){
+  const n=parseFloat(v);
+  return isNaN(n) ? [1,0,v] : [0,n,v];
+}
+function renderLevelGap(){
+  renderLevelTrendChart();
+  const legend=document.getElementById('lvl-gap-legend');
+  const body=document.getElementById('metrics-levelgap-body');
+  const legItem=k=>`<div class="lvl-gap-legend-item"><span class="lvl-gap-legend-swatch" style="background:${LVL_GAP_COLORS[k].bg}"></span>${LVL_GAP_SHORT[k]}</div>`;
+  legend.innerHTML=`<div class="lvl-gap-legend-group"><span class="lvl-gap-legend-title">◀ Debajo</span>${LVL_GAP_BELOW.slice().reverse().map(legItem).join('')}</div>
+    <span class="lvl-gap-legend-sep"></span>${legItem('En banda')}<span class="lvl-gap-legend-sep"></span>
+    <div class="lvl-gap-legend-group">${LVL_GAP_ABOVE.map(legItem).join('')}<span class="lvl-gap-legend-title">Encima ▶</span></div>`;
+  const data=metricsFilteredDataBase();
+  if(!data.length){ body.innerHTML='<div class="metric-empty">Sin datos para este mes/departamento</div>'; return; }
+  const levels=[...new Set(data.map(d=>(d.Seniority===''||d.Seniority==null)?'':String(d.Seniority)).filter(v=>v!==''))]
+    .sort((a,b)=>{
+      const ka=levelSortKey(a), kb=levelSortKey(b);
+      if(ka[0]!==kb[0])return ka[0]-kb[0];
+      return ka[0]===0 ? ka[1]-kb[1] : ka[2].localeCompare(kb[2]);
+    });
+  if(!levels.length){ body.innerHTML='<div class="metric-empty">Nadie tiene Level cargado para este mes/departamento</div>'; return; }
+  // % por categoría sobre el total del level (incluye "Sin dato", que no se dibuja pero
+  // sí cuenta en el denominador — mismo criterio que el trend de % Saludable).
+  const stats=levels.map(lvl=>{
+    const rows=data.filter(d=>String(d.Seniority)===lvl);
+    const total=rows.length;
+    const counts={};
+    GAP_METRIC_ORDER.forEach(k=>counts[k]=0);
+    let sinDato=0;
+    rows.forEach(d=>{
+      const v=d['% GAP Banda'];
+      if(v&&Object.prototype.hasOwnProperty.call(counts,v))counts[v]++; else sinDato++;
+    });
+    const pct=k=>total?counts[k]/total*100:0;
+    const eb=pct('En banda');
+    const left=eb/2+LVL_GAP_BELOW.reduce((a,k)=>a+pct(k),0);
+    const right=eb/2+LVL_GAP_ABOVE.reduce((a,k)=>a+pct(k),0);
+    const healthy=total?rows.filter(d=>SALUDABLE_GAP_SET.has(d['% GAP Banda'])).length/total*100:0;
+    return {lvl,total,counts,sinDato,pct,eb,left,right,healthy};
+  });
+  // Escala común a todos los levels: el lado más largo de cualquier fila llega al borde.
+  const maxSide=Math.max(1,...stats.map(s=>Math.max(s.left,s.right)));
+  const S=50/maxSide;
+  let totalSin=0;
+  const rowsHtml=stats.map(s=>{
+    totalSin+=s.sinDato;
+    const segs=[];
+    const seg=(k,x,w)=>{ if(w>0)segs.push({k,x,w}); };
+    seg('En banda',50-s.eb*S/2,s.eb*S);
+    let cur=50-s.eb*S/2;
+    LVL_GAP_BELOW.forEach(k=>{ const w=s.pct(k)*S; cur-=w; seg(k,cur,w); });
+    cur=50+s.eb*S/2;
+    LVL_GAP_ABOVE.forEach(k=>{ const w=s.pct(k)*S; seg(k,cur,w); cur+=w; });
+    const minX=Math.min(...segs.map(g=>g.x)), maxX=Math.max(...segs.map(g=>g.x+g.w));
+    const segHtml=segs.map(g=>{
+      const c=LVL_GAP_COLORS[g.k], p=s.pct(g.k);
+      const cls=['lvl-gap-seg','ink-'+c.ink];
+      if(Math.abs(g.x-minX)<1e-6)cls.push('end-l');
+      if(Math.abs(g.x+g.w-maxX)<1e-6)cls.push('end-r');
+      const txt=g.w>=6?Math.round(p)+'%':'';
+      return `<div class="${cls.join(' ')}" style="left:${g.x.toFixed(2)}%;width:${g.w.toFixed(2)}%;background:${c.bg}" title="Level ${s.lvl} · ${MSEL_LABELS.gap[g.k]||g.k}: ${s.counts[g.k]} persona${s.counts[g.k]===1?'':'s'} (${p.toFixed(1)}%)">${txt}</div>`;
+    }).join('');
+    const lvlEsc=String(s.lvl).replace(/'/g,"\\'");
+    const active=selectedLevelChartItems.has(s.lvl);
+    return `<div class="lvl-gap-row">
+      <div class="lvl-gap-label${active?' active':''}" onclick="toggleLevelChartItem('${lvlEsc}')" title="Clickear para comparar la evolución de este level en el tiempo">${s.lvl}</div>
+      <div class="lvl-gap-track">${segHtml}</div>
+      <div class="lvl-gap-health">${s.healthy.toFixed(0)}%</div>
+      <div class="lvl-gap-n"><button type="button" class="count-btn" onclick="showLevelPeople(this,'${lvlEsc}')">${s.total}</button></div>
+    </div>`;
+  }).join('');
+  body.innerHTML=`<div class="lvl-gap-head">
+      <div class="lvl-gap-label">Level</div>
+      <div class="lvl-gap-axis"><span>◀ Debajo de banda</span><span>En banda</span><span>Encima de banda ▶</span></div>
+      <div class="lvl-gap-health">% Saludable<small>±5% de banda</small></div>
+      <div class="lvl-gap-n">Personas</div>
+    </div>${rowsHtml}`
+    +(totalSin?`<div class="lvl-gap-foot">${totalSin} persona${totalSin===1?'':'s'} sin dato de GAP Banda (no se dibujan, pero cuentan en el % Saludable).</div>`:'');
+}
+
+// Cruce de un level específico contra el tiempo — se activa clickeando el nombre del level a
+// la izquierda de "Nivel vs GAP Banda" (multi-select, como los deptos). A diferencia de la card
+// en sí (que respeta el Período de arriba), este trend siempre muestra TODOS los meses — cortar
+// la línea a un solo trimestre la dejaría casi sin puntos.
+let selectedLevelChartItems=new Set();
+window.toggleLevelChartItem=function(lvl){
+  if(selectedLevelChartItems.has(lvl))selectedLevelChartItems.delete(lvl);else selectedLevelChartItems.add(lvl);
+  renderLevelGap();
+};
+function levelTrendSeries(){
+  return [...selectedLevelChartItems].sort().map((lvl,i)=>({key:lvl,label:'Level '+lvl,color:CHART_PALETTE[i%CHART_PALETTE.length]}));
+}
+function levelTrendData(){
+  const series=levelTrendSeries();
+  return MONTHS.map(m=>{
+    const values={};
+    series.forEach(s=>{
+      const rows=ALL_DATA.filter(d=>d.Month===m&&(!metricsDept||d.Department===metricsDept)&&String(d.Seniority)===s.key);
+      const total=rows.length;
+      const healthy=rows.filter(d=>SALUDABLE_GAP_SET.has(d['% GAP Banda'])).length;
+      values[s.key]=total?healthy/total*100:0;
+    });
+    return {month:m,label:ML[m]||m,values};
+  });
+}
+function renderLevelTrendChart(){
+  const wrap=document.getElementById('level-trend-wrap');
+  if(!wrap)return;
+  if(!selectedLevelChartItems.size){ wrap.hidden=true; return; }
+  wrap.hidden=false;
+  renderLineChart({svgId:'level-trend-chart-svg',legendId:'level-trend-legend',tooltipId:'level-trend-tooltip',data:levelTrendData(),series:levelTrendSeries(),yFmt:v=>v.toFixed(0)+'%'});
+}
+
+// Prioridad de Revisión Salarial: intersección de 3 señales de riesgo — sin ajuste hace
+// tiempo (o nunca) + debajo de banda + LC vencido (Aging >= 8 meses, umbral pedido por el
+// usuario). Usa metricsFilteredData() (mes + depto + Level, respeta los 3 filtros de arriba
+// como el resto de las cards "de personas") a diferencia de Nivel vs GAP Banda, que
+// deliberadamente los ignora. Ordenada por mayor Gap a Mínimo primero — la más urgente arriba.
+const AJUSTE_STALE_SET=new Set(['Ajuste hace mas de 1 año','Sin ajuste desde ingreso']);
+function salaryReviewList(){
+  return metricsFilteredData().filter(d=>{
+    if(!AJUSTE_STALE_SET.has(d['Ajuste ultimo año']))return false;
+    if(!(d['% GAP Banda']||'').startsWith('Debajo'))return false;
+    const aging=parseFloat(d['Aging LC (meses)']);
+    if(isNaN(aging)||aging<8)return false;
+    return true;
+  }).map(d=>{
+    const costo=parseFloat(d['Costo USD/H']), bmin=parseFloat(d['Banda Min']);
+    const gapMin=(!isNaN(costo)&&!isNaN(bmin)&&bmin>costo)?bmin-costo:0;
+    return Object.assign({},d,{__gapMin:gapMin});
+  }).sort((a,b)=>b.__gapMin-a.__gapMin);
+}
+function renderSalaryReview(){
+  const sub=document.getElementById('metrics-salaryreview-sub');
+  const body=document.getElementById('metrics-salaryreview-body');
+  const list=salaryReviewList();
+  sub.textContent=`${list.length} persona${list.length===1?'':'s'} — Ajuste hace +1 año o sin ajuste desde ingreso, Debajo de banda, y Aging LC ≥ 8 meses`;
+  if(!list.length){ body.innerHTML='<div class="metric-empty">Nadie cumple los 3 criterios para este mes/departamento/level</div>'; return; }
+  body.innerHTML=`<div class="metric-trend-wrap"><table class="metric-trend-table">
+    <thead><tr><th>Nombre</th><th>Depto</th><th>Level</th><th>Ajuste último año</th><th>GAP Banda</th><th>Aging LC</th><th>Status LC</th><th>Costo USD/H</th><th>Banda Min</th><th>Gap a Mínimo</th></tr></thead>
+    <tbody>${list.map(d=>`<tr>
+      <td style="font-family:var(--font-sans);font-weight:600;color:var(--ms-dark)">${dash(d['Last name, First name'])}</td>
+      <td>${dash(d.Department)}</td>
+      <td class="mono">${dash(d.Seniority)}</td>
+      <td style="font-size:11px">${dash(d['Ajuste ultimo año'])}</td>
+      <td>${d['% GAP Banda']?`<span class="gp ${gc(d['% GAP Banda'])}">${d['% GAP Banda']}</span>`:dash('')}</td>
+      <td class="mono">${agingLcBadge(d['Aging LC (meses)'])}</td>
+      <td>${statusLcBadge(d['Status LC'])}</td>
+      <td class="mono">$${num(d['Costo USD/H'])}</td>
+      <td class="mono">$${num(d['Banda Min'])}</td>
+      <td class="mono" style="font-weight:700;color:var(--ms-purple)">$${d.__gapMin.toFixed(1)}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// % con caso de performance abierto por Departamento — mismo criterio que "Nivel vs GAP
+// Banda": ignora a propósito metricsDept (el objetivo es comparar deptos entre sí) pero SÍ
+// respeta metricsLevel (tiene sentido acotar "¿qué depto tiene más casos abiertos en este
+// level puntual?"). d['Caso Abierto'] ya viene calculado desde el backend (fijo/dinámico
+// según el mes, ver getCasosData_() en Code_GENERAL.gs) — acá solo se agrupa y cuenta.
+function performanceCasesByDept(){
+  const months=activePeriodMonths();
+  let rows=ALL_DATA.filter(d=>months.includes(d.Month) && (!metricsLevel||String(d.Seniority)===metricsLevel));
+  if(months.length>1)rows=dedupeLatestPerPerson(rows);
+  const byDept={};
+  rows.forEach(d=>{
+    const dep=d.Department; if(!dep)return;
+    if(!byDept[dep])byDept[dep]={total:0,open:0};
+    byDept[dep].total++;
+    if(d['Caso Abierto'])byDept[dep].open++;
+  });
+  return Object.entries(byDept).map(([dep,v])=>({dep,total:v.total,open:v.open,pct:v.total?v.open/v.total*100:0}))
+    .sort((a,b)=>b.pct-a.pct);
+}
+function renderPerfCasesByDept(){
+  const sub=document.getElementById('metrics-perfcases-sub');
+  const body=document.getElementById('metrics-perfcases-body');
+  const data=performanceCasesByDept();
+  const lvlLbl=metricsLevel?`Level ${metricsLevel} — `:'';
+  sub.textContent=`${lvlLbl}${periodLabel()} — todos los departamentos, no depende del filtro de Departamento de arriba`;
+  if(!data.length){ body.innerHTML='<div class="metric-empty">Sin datos para este período/level</div>'; return; }
+  body.innerHTML=data.map(r=>{
+    return `<div class="metric-row">
+      <div class="metric-label" style="width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.dep}">${r.dep.replace(/^MS - /,'')}</div>
+      <div class="metric-bar-track"><div class="metric-bar-fill metric-fill-go" style="width:${r.pct.toFixed(1)}%"></div></div>
+      <div class="metric-count"><button type="button" class="count-btn" onclick="showPerfCasesPeople(this,'${r.dep.replace(/'/g,"\\'")}')">${r.open}</button>/${r.total} <span class="metric-pct">(${r.pct.toFixed(1)}%)</span></div>
+    </div>`;
+  }).join('');
+}
+
+// Costo Total por Cuenta / Proyecto (x168hs): suma de Costo USD/H × 168 de las personas de
+// cada cuenta. Respeta los 3 filtros de arriba (Período/Depto/Level) vía metricsFilteredData()
+// — con un período de varios meses ya viene deduplicado al último mes de cada persona, así que
+// el valor es siempre un costo MENSUAL, no la suma de los meses. La cuenta sale del sheet
+// externo de LC (cruce por email, ver getLCData_() en Code_GENERAL.gs) y es la asignación
+// ACTUAL de cada persona — por eso no hay trend histórico: aplicarla a meses viejos mostraría
+// el costo del equipo de hoy, no el que tuvo la cuenta en ese momento.
+const PROJ_COST_TOP=15;
+const PROJ_SIN_CUENTA='__sin_cuenta__';
+let projCostQuery='';
+let projCostShowAll=false;
+let projCostList=[]; // último ranking renderizado — los onclick referencian por índice
+function projKey(d){
+  const v=String(d['Account / Proyecto']||'').trim();
+  return v||PROJ_SIN_CUENTA;
+}
+window.setProjCostQuery=function(q){
+  projCostQuery=q;
+  renderProjectCost();
+};
+window.toggleProjCostAll=function(){
+  projCostShowAll=!projCostShowAll;
+  renderProjectCost();
+};
+function renderProjectCost(){
+  const sub=document.getElementById('proj-cost-sub');
+  const kpis=document.getElementById('proj-cost-kpis');
+  const body=document.getElementById('proj-cost-body');
+  if(!body)return;
+  const lvlLbl=metricsLevel?` — Level ${metricsLevel}`:'';
+  sub.textContent=`${periodLabel()} — ${metricsDept||'Todos los departamentos'}${lvlLbl} — costo mensual (Costo USD/H × ${HORAS_MES}hs). La cuenta es la asignación actual según el sheet de LC.`;
+  const data=metricsFilteredData();
+  const groups={};
+  data.forEach(d=>{
+    const c=parseFloat(d['Costo USD/H']);
+    const k=projKey(d);
+    const g=groups[k]||(groups[k]={key:k,cost:0,n:0,nCosto:0});
+    g.n++;
+    if(!isNaN(c)){ g.cost+=c*HORAS_MES; g.nCosto++; }
+  });
+  const all=Object.values(groups);
+  const grand=all.reduce((a,g)=>a+g.cost,0);
+  const sin=groups[PROJ_SIN_CUENTA];
+  const ranked=all.filter(g=>g.key!==PROJ_SIN_CUENTA).sort((a,b)=>b.cost-a.cost);
+  ranked.forEach((g,i)=>g.rank=i+1);
+  kpis.innerHTML=`<div class="proj-cost-kpi"><b>${fmtUsd(grand)}</b><span>Costo total / mes</span></div>
+    <div class="proj-cost-kpi"><b>${ranked.length}</b><span>Cuentas</span></div>
+    <div class="proj-cost-kpi"><b>${ranked.length?fmtUsd(grand/ranked.length):'—'}</b><span>Promedio por cuenta</span></div>`;
+  if(!data.length){ body.innerHTML='<div class="metric-empty">Sin datos para este período/departamento/level</div>'; return; }
+  const q=projCostQuery.trim().toLowerCase();
+  let shown=q?ranked.filter(g=>g.key.toLowerCase().includes(q)):ranked;
+  const hidden=(!q&&!projCostShowAll)?Math.max(0,shown.length-PROJ_COST_TOP):0;
+  if(hidden)shown=shown.slice(0,PROJ_COST_TOP);
+  const maxCost=Math.max(1,...ranked.map(g=>g.cost),sin?sin.cost:0);
+  projCostList=sin&&!q?[...shown,sin]:shown;
+  const row=(g,i)=>{
+    const isSin=g.key===PROJ_SIN_CUENTA;
+    const name=isSin?'Sin cuenta asignada':g.key;
+    const share=grand?g.cost/grand*100:0;
+    const avg=g.nCosto?g.cost/HORAS_MES/g.nCosto:0;
+    const nameEsc=String(name).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+    const tip=`${nameEsc} — ${fmtUsd(g.cost)}/mes · ${g.n} persona${g.n===1?'':'s'} · promedio $${avg.toFixed(1)}/h`+(g.nCosto<g.n?` · ${g.n-g.nCosto} sin Costo USD/H`:'');
+    return `<div class="proj-cost-row${isSin?' sin':''}" title="${tip}">
+      <div class="proj-cost-rank">${isSin?'':g.rank}</div>
+      <div class="proj-cost-name">${nameEsc}</div>
+      <div class="proj-cost-track"><div class="proj-cost-fill" style="width:${(g.cost/maxCost*100).toFixed(2)}%"></div></div>
+      <div class="proj-cost-val">${fmtUsd(g.cost)}</div>
+      <div class="proj-cost-share">${share.toFixed(1)}%</div>
+      <div class="proj-cost-n"><button type="button" class="count-btn" onclick="showProjectPeople(this,${i})">${g.n}</button> pers.</div>
+    </div>`;
+  };
+  let html=shown.length?shown.map(row).join(''):'<div class="metric-empty">Ninguna cuenta coincide con la búsqueda</div>';
+  if(sin&&!q)html+=`<div class="proj-cost-sep"></div>`+row(sin,shown.length);
+  if(hidden)html+=`<button type="button" class="proj-cost-more" onclick="toggleProjCostAll()">Ver todas (${hidden} más)</button>`;
+  else if(!q&&projCostShowAll&&ranked.length>PROJ_COST_TOP)html+=`<button type="button" class="proj-cost-more" onclick="toggleProjCostAll()">Ver solo top ${PROJ_COST_TOP}</button>`;
+  body.innerHTML=html;
+}
+
+// Evolución de Costo Promedio USD/H — trend siempre a todos los meses (ignora Período, igual
+// criterio que el resto de las cards de tendencia). Respeta metricsDept/metricsLevel de arriba
+// como filtro base; el modo (Departamento/Level) decide por qué dimensión se puede desglosar
+// ADEMÁS de esos filtros — si ya hay un depto puntual elegido arriba y se desglosa "por Level",
+// el selector solo ofrece los levels que existen DENTRO de ese depto (y viceversa).
+// `avgCostoDeptScope` es un acotador PROPIO de esta card, solo aplica en modo Level: permite
+// comparar levels "a nivel general" (scope vacío, como pedía el usuario que ya andaba) Y TAMBIÉN
+// levels acotados a uno o más deptos elegidos acá mismo, sin depender del filtro de Depto de
+// arriba (que es single-select y se comparte con el resto de las cards de Métricas).
+let avgCostoMode='dept'; // 'dept' | 'level'
+let selectedAvgCostoItems=new Set();
+let avgCostoDeptScope=new Set(); // solo se usa cuando avgCostoMode==='level'
+function avgCosto(rows){
+  const cs=rows.map(d=>parseFloat(d['Costo USD/H'])).filter(n=>!isNaN(n));
+  return cs.length?cs.reduce((a,b)=>a+b,0)/cs.length:0;
+}
+function avgCostoScopeOk(d){
+  return avgCostoMode!=='level'||!avgCostoDeptScope.size||avgCostoDeptScope.has(d.Department);
+}
+function avgCostoBaseRows(m){
+  return ALL_DATA.filter(d=>d.Month===m&&(!metricsDept||d.Department===metricsDept)&&(!metricsLevel||String(d.Seniority)===metricsLevel)&&avgCostoScopeOk(d));
+}
+function avgCostoGroupKey(d){
+  return avgCostoMode==='dept'?d.Department:((d.Seniority===''||d.Seniority==null)?'':String(d.Seniority));
+}
+function avgCostoAvailableItems(){
+  const rows=ALL_DATA.filter(d=>(!metricsDept||d.Department===metricsDept)&&(!metricsLevel||String(d.Seniority)===metricsLevel)&&avgCostoScopeOk(d));
+  const set=new Set();
+  rows.forEach(d=>{ const v=avgCostoGroupKey(d); if(v)set.add(v); });
+  const arr=[...set];
+  if(avgCostoMode==='level'){
+    arr.sort((a,b)=>{
+      const ka=levelSortKey(a),kb=levelSortKey(b);
+      if(ka[0]!==kb[0])return ka[0]-kb[0];
+      return ka[0]===0?ka[1]-kb[1]:ka[2].localeCompare(kb[2]);
+    });
+  }else{
+    arr.sort();
+  }
+  return arr;
+}
+// Drill-down por Código — solo tiene sentido en modo Departamento y una vez que ya se eligió
+// 1+ depto (los códigos son propios de cada depto, ej. "FIN 04" no existe en Development). Si
+// hay 1+ códigos tildados, las líneas pasan a ser por Código (dentro de los deptos elegidos) en
+// vez de una línea por depto entero.
+let selectedAvgCostoCodes=new Set();
+function avgCostoAvailableCodes(){
+  if(avgCostoMode!=='dept'||!selectedAvgCostoItems.size)return[];
+  const rows=ALL_DATA.filter(d=>(!metricsDept||d.Department===metricsDept)&&(!metricsLevel||String(d.Seniority)===metricsLevel)&&selectedAvgCostoItems.has(d.Department));
+  return [...new Set(rows.map(d=>d['Code (Level)']).filter(Boolean))].sort();
+}
+function avgCostoChartSeries(){
+  if(avgCostoMode==='dept'&&selectedAvgCostoCodes.size){
+    const codes=avgCostoAvailableCodes().filter(c=>selectedAvgCostoCodes.has(c));
+    if(codes.length)return codes.map((c,i)=>({key:c,label:c,color:CHART_PALETTE[i%CHART_PALETTE.length]}));
+  }
+  const items=avgCostoAvailableItems().filter(v=>selectedAvgCostoItems.has(v));
+  if(!items.length)return[{key:'__general__',label:'Promedio general',color:CHART_PALETTE[0]}];
+  return items.map((v,i)=>({key:v,label:avgCostoMode==='dept'?v.replace(/^MS - /,''):('Level '+v),color:CHART_PALETTE[i%CHART_PALETTE.length]}));
+}
+function avgCostoChartData(){
+  const series=avgCostoChartSeries();
+  const useGeneral=series.length===1&&series[0].key==='__general__';
+  const byCode=avgCostoMode==='dept'&&selectedAvgCostoCodes.size>0&&!useGeneral;
+  return MONTHS.map(m=>{
+    const rows=avgCostoBaseRows(m);
+    const values={};
+    series.forEach(s=>{
+      if(useGeneral)values[s.key]=avgCosto(rows);
+      else if(byCode)values[s.key]=avgCosto(rows.filter(d=>d['Code (Level)']===s.key));
+      else values[s.key]=avgCosto(rows.filter(d=>avgCostoGroupKey(d)===s.key));
+    });
+    return {month:m,label:ML[m]||m,values};
+  });
+}
+function renderAvgCostoModeToggle(){
+  const el=document.getElementById('avgcosto-mode');
+  if(!el)return;
+  el.innerHTML=[['dept','Departamento'],['level','Level']].map(([m,lbl])=>`<button type="button" class="chart-pill${avgCostoMode===m?' active':''}" onclick="setAvgCostoMode('${m}')">${lbl}</button>`).join('');
+}
+window.setAvgCostoMode=function(m){
+  if(avgCostoMode===m)return;
+  avgCostoMode=m;
+  selectedAvgCostoItems=new Set();
+  selectedAvgCostoCodes=new Set();
+  renderAvgCostoChart();
+};
+function renderAvgCostoSelector(){
+  const el=document.getElementById('avgcosto-select');
+  if(!el)return;
+  const items=avgCostoAvailableItems();
+  el.innerHTML=items.map(v=>{
+    const label=avgCostoMode==='dept'?v.replace(/^MS - /,''):('Level '+v);
+    return `<button type="button" class="chart-pill${selectedAvgCostoItems.has(v)?' active':''}" onclick="toggleAvgCostoItem('${v.replace(/'/g,"\\'")}')">${label}</button>`;
+  }).join('');
+}
+window.toggleAvgCostoItem=function(v){
+  if(selectedAvgCostoItems.has(v))selectedAvgCostoItems.delete(v);else selectedAvgCostoItems.add(v);
+  selectedAvgCostoCodes=new Set(); // cambiar los deptos/levels elegidos invalida los códigos ya tildados
+  renderAvgCostoChart();
+};
+// Solo visible en modo Departamento con 1+ depto ya elegido — lista los códigos que existen
+// DENTRO de esos deptos (respetando también metricsDept/metricsLevel de arriba).
+function renderAvgCostoCodeSelector(){
+  const el=document.getElementById('avgcosto-code-select');
+  if(!el)return;
+  const codes=avgCostoAvailableCodes();
+  if(!codes.length){ el.hidden=true; el.innerHTML=''; return; }
+  el.hidden=false;
+  el.innerHTML=`<span class="chart-pill-label">Ver por código:</span>`
+    +codes.map(c=>`<button type="button" class="chart-pill${selectedAvgCostoCodes.has(c)?' active':''}" onclick="toggleAvgCostoCode('${c.replace(/'/g,"\\'")}')">${c}</button>`).join('');
+}
+window.toggleAvgCostoCode=function(c){
+  if(selectedAvgCostoCodes.has(c))selectedAvgCostoCodes.delete(c);else selectedAvgCostoCodes.add(c);
+  renderAvgCostoChart();
+};
+// Solo visible en modo Level — deptos disponibles según metricsDept de arriba (si ya hay uno
+// elegido, acá solo se puede acotar todavía más entre ese único depto).
+function renderAvgCostoDeptScope(){
+  const el=document.getElementById('avgcosto-deptscope');
+  if(!el)return;
+  if(avgCostoMode!=='level'){ el.hidden=true; el.innerHTML=''; return; }
+  el.hidden=false;
+  const depts=[...new Set(ALL_DATA.filter(d=>!metricsDept||d.Department===metricsDept).map(d=>d.Department).filter(Boolean))].sort();
+  el.innerHTML=`<span class="chart-pill-label">Acotar a depto(s) (vacío = a nivel general):</span>`
+    +depts.map(dp=>`<button type="button" class="chart-pill${avgCostoDeptScope.has(dp)?' active':''}" onclick="toggleAvgCostoDeptScope('${dp.replace(/'/g,"\\'")}')">${dp.replace(/^MS - /,'')}</button>`).join('');
+}
+window.toggleAvgCostoDeptScope=function(dp){
+  if(avgCostoDeptScope.has(dp))avgCostoDeptScope.delete(dp);else avgCostoDeptScope.add(dp);
+  renderAvgCostoChart();
+};
+function renderAvgCostoChart(){
+  renderAvgCostoModeToggle();
+  renderAvgCostoDeptScope();
+  renderAvgCostoSelector();
+  renderAvgCostoCodeSelector();
+  renderLineChart({svgId:'avgcosto-chart-svg',legendId:'avgcosto-legend',tooltipId:'avgcosto-tooltip',data:avgCostoChartData(),series:avgCostoChartSeries(),yFmt:v=>'$'+v.toFixed(1)});
+}
+
+// Panel compartido "quiénes son" — CUALQUIER conteo de personas en Métricas (el total del
+// resumen, una categoría de Distribución en Banda/Ajuste Último Año, una fila de Nivel vs GAP
+// Banda, un depto de Casos de Performance) abre el MISMO panel, con Nombre/Level/Costo USD/H
+// de ese grupo puntual. `peopleListSource` guarda un getter (no el array ya resuelto) para que
+// el panel se auto-actualice solo si el usuario después toca Mes/Depto/Level sin cerrarlo —
+// cada getter vuelve a leer el estado global de filtros en el momento de renderizar, nunca
+// queda con data vieja. `peopleListSource===null` es el caso especial "el total de arriba".
+//
+// `peopleListAnchor` es el bloque (card, o el grid de 2 columnas) DESPUÉS del cual se inserta
+// el panel en el DOM — así aparece pegado a la card que se clickeó, no siempre arriba de todo.
+// null = posición default (`#metrics-people-panel-slot`, justo debajo del resumen).
+let peopleListOpen=false;
+let peopleListSource=null; // {label, getRows} | null
+let peopleListAnchor=null; // Element | null
+// Sube desde `el` hasta encontrar el hijo directo de #metrics-section — funciona tanto para
+// una card suelta (metric-card-wide, ya es hijo directo) como para una card dentro de
+// .metrics-grid (Distribución en Banda/Ajuste Último Año), donde hace falta anclar después del
+// grid completo para no insertar el panel como un 3er ítem roto dentro de esa grilla de 2 cols.
+function metricsBlockFor(el){
+  const section=document.getElementById('metrics-section');
+  let node=el;
+  while(node&&node.parentElement!==section)node=node.parentElement;
+  return node||null;
+}
+function openPeopleList(label,getRows,anchorEl){
+  peopleListOpen=true;
+  peopleListSource={label,getRows};
+  peopleListAnchor=anchorEl?metricsBlockFor(anchorEl):null;
+  renderMetrics();
+  const panel=document.getElementById('metrics-people-panel');
+  if(panel)panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function togglePeopleList(){
+  if(peopleListOpen&&!peopleListSource){ peopleListOpen=false; }
+  else { peopleListOpen=true; peopleListSource=null; peopleListAnchor=null; }
+  renderMetrics();
+}
+function closePeopleList(){
+  peopleListOpen=false;
+  peopleListSource=null;
+  peopleListAnchor=null;
+  renderMetrics();
+}
+function renderPeopleList(defaultData){
+  const panel=document.getElementById('metrics-people-panel');
+  const slot=document.getElementById('metrics-people-panel-slot');
+  const btn=document.getElementById('metrics-people-toggle');
+  if(btn)btn.classList.toggle('open',peopleListOpen&&!peopleListSource);
+  const target=peopleListAnchor||slot;
+  if(target&&panel.previousElementSibling!==target){
+    target.insertAdjacentElement('afterend',panel);
+  }
+  if(!peopleListOpen){ panel.hidden=true; panel.innerHTML=''; return; }
+  panel.hidden=false;
+  const label=peopleListSource?peopleListSource.label:'Todas las personas filtradas';
+  const rows=peopleListSource?peopleListSource.getRows():defaultData;
+  const closeBtn=`<button type="button" class="people-list-close" onclick="closePeopleList()">Cerrar ✕</button>`;
+  const titleHtml=`<div class="people-list-title"><span>${label} — ${rows.length} persona${rows.length===1?'':'s'}</span>${closeBtn}</div>`;
+  if(!rows.length){ panel.innerHTML=titleHtml+'<div class="metric-empty">Nadie cumple este criterio</div>'; return; }
+  const sorted=[...rows].sort((a,b)=>String(a['Last name, First name']||'').localeCompare(String(b['Last name, First name']||''),'es'));
+  panel.innerHTML=titleHtml+`<div class="metric-trend-wrap people-list-wrap"><table class="metric-trend-table">
+    <thead><tr><th>Nombre</th><th>Level</th><th>Costo USD/H</th><th>Fecha Ingreso</th><th>GAP Banda</th><th>Aging LC</th><th>Status LC</th></tr></thead>
+    <tbody>${sorted.map(d=>`<tr>
+      <td style="font-family:var(--font-sans);font-weight:600;color:var(--ms-dark)">${dash(d['Last name, First name'])}</td>
+      <td class="mono">${dash(d.Seniority)}</td>
+      <td class="mono">$${num(d['Costo USD/H'])}</td>
+      <td class="mono" style="color:var(--tbl-text2);font-size:10.5px">${fmtDate(d['Hire Date'])||'<span style="color:var(--tbl-text3)">—</span>'}</td>
+      <td>${d['% GAP Banda']?`<span class="gp ${gc(d['% GAP Banda'])}">${d['% GAP Banda']}</span>`:'<span style="color:var(--tbl-text3)">—</span>'}</td>
+      <td class="mono">${agingLcBadge(d['Aging LC (meses)'])}</td>
+      <td>${statusLcBadge(d['Status LC'])}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// Wrappers usados desde los onclick de cada card — cada uno re-lee el estado global de
+// filtros (metricsFilteredData()/metricsFilteredDataBase()/ALL_DATA) al momento del click,
+// nunca reciben un array ya armado.
+window.showCategoryPeople=function(btn,field,key,cardLabel){
+  const isSinDato=key==='__sindato__';
+  const lbl=isSinDato?'Sin dato':(field==='% GAP Banda'?(MSEL_LABELS.gap[key]||key):key);
+  openPeopleList(`${lbl} (${cardLabel})`,()=>{
+    const base=metricsFilteredData();
+    return isSinDato?base.filter(d=>!d[field]):base.filter(d=>d[field]===key);
+  },btn);
+};
+window.showLevelPeople=function(btn,lvl){
+  openPeopleList(`Level ${lvl} (Nivel vs GAP Banda)`,()=>metricsFilteredDataBase().filter(d=>String(d.Seniority)===lvl),btn);
+};
+window.showProjectPeople=function(btn,i){
+  const g=projCostList[i];
+  if(!g)return;
+  const key=g.key;
+  const name=key===PROJ_SIN_CUENTA?'Sin cuenta asignada':key;
+  openPeopleList(`${name} (Costo por Cuenta / Proyecto)`,()=>metricsFilteredData().filter(d=>projKey(d)===key),btn);
+};
+window.showPerfCasesPeople=function(btn,dept){
+  openPeopleList(`${dept.replace(/^MS - /,'')} — con caso abierto (Casos de Performance)`,()=>{
+    const months=activePeriodMonths();
+    let rows=ALL_DATA.filter(d=>months.includes(d.Month)&&d.Department===dept&&(!metricsLevel||String(d.Seniority)===metricsLevel));
+    if(months.length>1)rows=dedupeLatestPerPerson(rows);
+    return rows.filter(d=>d['Caso Abierto']);
+  },btn);
+};
+
 function renderMetrics(){
   renderMetricsTrend();
+  renderDeptCostTrend();
+  renderDeptCostChart();
+  renderAgreementCostTrend();
+  renderAgreementCostChart();
+  renderLevelGap();
+  renderSalaryReview();
+  renderPerfCasesByDept();
+  renderProjectCost();
+  renderAvgCostoChart();
   const data=metricsFilteredData();
   const total=data.length;
-  const mesLbl=ML[activeMonth]||activeMonth;
+  const mesLbl=periodLabel();
   const deptLbl=metricsDept||'Todos los departamentos';
-  document.getElementById('metrics-summary').innerHTML=`<strong>${total}</strong> personas — ${mesLbl} — ${deptLbl}`;
+  const lvlLbl=metricsLevel?` — Level ${metricsLevel}`:'';
+  document.getElementById('metrics-summary').innerHTML=`<button type="button" class="people-count-btn${peopleListOpen?' open':''}" id="metrics-people-toggle" onclick="togglePeopleList()"><strong>${total}</strong> persona${total===1?'':'s'}</button> — ${mesLbl} — ${deptLbl}${lvlLbl}`;
+  renderPeopleList(data);
+  const saludableBadge=document.getElementById('banda-saludable-badge');
   if(!total){
-    document.getElementById('metrics-banda-body').innerHTML='<div class="metric-empty">Sin datos para este mes/departamento</div>';
-    document.getElementById('metrics-ajuste-body').innerHTML='<div class="metric-empty">Sin datos para este mes/departamento</div>';
+    document.getElementById('metrics-banda-body').innerHTML='<div class="metric-empty">Sin datos para este período/departamento/level</div>';
+    document.getElementById('metrics-ajuste-body').innerHTML='<div class="metric-empty">Sin datos para este período/departamento/level</div>';
+    if(saludableBadge)saludableBadge.textContent='';
     return;
   }
-  document.getElementById('metrics-banda-body').innerHTML=metricBars(data,'% GAP Banda',GAP_METRIC_ORDER,gapMetricColor,k=>MSEL_LABELS.gap[k]||k);
-  document.getElementById('metrics-ajuste-body').innerHTML=metricBars(data,'Ajuste ultimo año',AJUSTE_METRIC_ORDER,k=>AJUSTE_METRIC_COLOR[k],k=>k);
+  document.getElementById('metrics-banda-body').innerHTML=metricBars(data,'% GAP Banda',GAP_METRIC_ORDER,gapMetricColor,k=>MSEL_LABELS.gap[k]||k,'Distribución en Banda');
+  document.getElementById('metrics-ajuste-body').innerHTML=metricBars(data,'Ajuste ultimo año',AJUSTE_METRIC_ORDER,k=>AJUSTE_METRIC_COLOR[k],k=>k,'Ajuste Último Año');
+  if(saludableBadge){
+    const healthy=data.filter(d=>SALUDABLE_GAP_SET.has(d['% GAP Banda'])).length;
+    saludableBadge.textContent=`Saludable: ${healthy} (${(healthy/total*100).toFixed(1)}%)`;
+  }
 }
 
 // ── Click en la stats-bar: cada tarjeta clickeable filtra la tabla por esa condición.
@@ -1260,6 +2500,7 @@ function renderStats(){
   const cs=filtered.map(d=>parseFloat(d['Costo USD/H'])).filter(n=>!isNaN(n));
   const avg=cs.length?(cs.reduce((a,b)=>a+b,0)/cs.length).toFixed(1):'—';
   const costoNivelar=costoAMinimo(filtered);
+  const costoTotalMes=costoTotalDelMes(filtered);
   const noneActive=(!statFilter.gap&&!statFilter.agreement)?' active':'';
   const gapActive=k=>statFilter.gap===k?' active':'';
   const agActive=v=>statFilter.agreement===v?' active':'';
@@ -1272,7 +2513,8 @@ function renderStats(){
     <div class="stat clickable${agActive('Plus Fijo')}" onclick="toggleStatAgreement('Plus Fijo')"><div class="stat-v solid-dark">${pf}</div><div class="stat-l">Plus Fijo</div></div>
     <div class="stat clickable${agActive('Empleado')}" onclick="toggleStatAgreement('Empleado')"><div class="stat-v solid-dark">${emp}</div><div class="stat-l">Empleados</div></div>
     <div class="stat"><div class="stat-v amber">$${avg}</div><div class="stat-l">Costo prom USD/H</div></div>
-    <div class="stat"><div class="stat-v purple">$${costoNivelar.toFixed(1)}</div><div class="stat-l">Costo/h nivelar debajo banda</div></div>`;
+    <div class="stat"><div class="stat-v purple">$${costoNivelar.toFixed(1)}</div><div class="stat-l">Costo/h nivelar debajo banda</div></div>
+    <div class="stat"><div class="stat-v purple">${fmtUsd(costoTotalMes)}</div><div class="stat-l">Costo total del mes (x168hs)</div></div>`;
 }
 
 // GAP color class (shared for pill and numeric)
@@ -1396,9 +2638,10 @@ function renderTable(){
       <td class="mono" style="color:var(--tbl-text2);font-size:10.5px">${fmtDate(d['Fecha ultimo LC'])||'<span style="color:var(--tbl-text3)">—</span>'}</td>
       <td class="mono">${agingLcBadge(d['Aging LC (meses)'])}</td>
       <td>${statusLcBadge(d['Status LC'])}</td>
+      <td style="color:var(--tbl-text2);font-size:11px">${dash(d['Outcome LC'])}</td>
       <td class="action-cell">
         <div class="action-wrap">
-          <textarea class="note-input${note?' hv':''}" ${USER_ROLE!=='editor'?'readonly':''} placeholder="Notas…" onblur="saveNote(this,'${k}')" oninput="ar(this)">${note}</textarea>
+          <textarea rows="1" class="note-input${note?' hv':''}" ${USER_ROLE!=='editor'?'readonly':''} placeholder="Notas…" title="${String(note).replace(/"/g,'&quot;')}" onfocus="ar(this)" onblur="saveNote(this,'${k}');this.style.minHeight=''" oninput="ar(this)">${note}</textarea>
         </div>
       </td>
       <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;color:var(--tbl-text2);font-size:11px" title="${d['Ajuste ultimo año']||''}">${dash(d['Ajuste ultimo año'])}</td>
@@ -1424,7 +2667,7 @@ function renderPag(){
 
 window.gp=p=>{page=p;renderTable();renderPag();window.scrollTo({top:0,behavior:'smooth'});};
 window.saveNote=function(el,k){const d=window.fMap[k];if(!d)return;setNote(d,el.value);el.classList.toggle('hv',!!el.value.trim());};
-window.ar=function(el){el.style.minHeight='24px';el.style.minHeight=el.scrollHeight+'px';};
+window.ar=function(el){el.style.minHeight='20px';el.style.minHeight=el.scrollHeight+'px';};
 
 // ── Bootstrap from Apps Script backend
 google.script.run
@@ -1433,6 +2676,7 @@ google.script.run
     if(payload.role==='denied'){ showDeniedGate(payload.email); return; }
     ALL_DATA = (payload.data || []);
     derivarMeses();
+    computeTopDepts();
     initPills();
     initDeptTabs();
     populateAllMsel();
