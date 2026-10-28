@@ -131,9 +131,9 @@ def _load_doppler_seniority_map(svc):
         print(f'Advertencia: no se pudo leer "{TAB_SENIORITY_DOPPLER}": {e}')
         DOPPLER_SENIORITY_MAP = {}
 
-# Project (col R): la fuente principal es la col A ("Account / Proyecto") de la
+# Client (col Q) y Project (col R): la fuente principal es la col A ("Account / Proyecto") de la
 # solapa "Base Consolidada" de Talent Discussion, cruzando por Mail (col C).
-# Si la persona no figura ahí, queda el customProyecto de BambooHR.
+# Si la persona no figura ahí, quedan customCliente / customProyecto de BambooHR.
 TD_SSID     = '1goxKg8LylMSZcVzkPVBPczknKlFbB8WBYge_XpAQxTw'
 TD_TAB      = 'Base Consolidada'
 TD_PROJECT_MAP = {}
@@ -345,7 +345,7 @@ def _apply_daily_cols(row, emp, demo_row):
     row[13] = emp.get('customPer') or ''
     row[14] = emp.get('customPayRate-CurrencyCode') or ''
     row[15] = _fmt_d(eff_date2)
-    row[16] = emp.get('customCliente') or ''
+    row[16] = TD_PROJECT_MAP.get(email) or emp.get('customCliente') or ''
     row[17] = TD_PROJECT_MAP.get(email) or emp.get('customProyecto') or ''
     row[18] = pct
     row[19] = emp.get('4314') or ''  # Termination Reason (customRazónSalida está siempre vacío en Bamboo)
@@ -374,6 +374,12 @@ def _apply_daily_cols(row, emp, demo_row):
 
     if _is_cosmolex(emp):
         row[46] = 'Cosmolex'
+
+    # Client: Talent Discussion si figura; si no, Making Sense (activos) queda
+    # vacío y el resto de las divisiones mantiene el customCliente de Bamboo.
+    # Las bajas conservan su último cliente (no figuran en Talent Discussion).
+    if email not in TD_PROJECT_MAP and row[46] == 'Making Sense' and row[35] == 'Active':
+        row[16] = ''
 
     for i, v in enumerate(row):
         row[i] = _clean_placeholder(v)
