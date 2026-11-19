@@ -701,6 +701,7 @@ body.metrics-mode .metrics-panel{display:block;background:var(--ms-white);paddin
 .ag-legend-item{display:inline-flex;align-items:center;gap:2px;}
 .ag-var{font-family:var(--font-mono);font-size:10.5px;padding:2px 6px;border-radius:var(--radius-pill);cursor:help;border-bottom:1px dotted currentColor;}
 .ag-var:hover{background:var(--ms-grey-100);}
+.tot-var,.avg-var{cursor:help;border-bottom:1px dotted currentColor;}
 .ag-var-note{font-size:10px;color:var(--tbl-text3);align-self:center;margin-left:4px;}
 .lvl-gap-tip-foot{margin-top:6px;font-size:10px;color:#AEB7C0;white-space:nowrap;}
 .lvl-gap-seg.end-l{border-radius:4px 0 0 4px;}
@@ -1877,9 +1878,18 @@ function agreementVarRefMonth(){
 }
 const agVarCache=new Map();
 function agreementVarBreakdown(m,ag){
-  const ck=m+'|'+ag+'|'+[...mselSelected.mdept].sort().join(',');
+  return totalVarBreakdown(m,d=>d.Agreement===ag&&mDeptOk(d),'ag|'+ag,ag);
+}
+// Costo total de toda la nómina filtrada por Departamento — usado por "Evolución Mensual".
+function totalCostVarBreakdown(m){
+  return totalVarBreakdown(m,d=>mDeptOk(d),'total','Costo total');
+}
+// Desglose de la variación de un TOTAL (×168) para el grupo `inScope`. Cacheado por mes +
+// grupo + filtro de depto (agVarCache se limpia en cada render de Métricas).
+function totalVarBreakdown(m,inScope,groupKey,label,usesDeptFilter=true){
+  const ck=m+'|'+groupKey+'|'+[...mselSelected.mdept].sort().join(',');
   if(agVarCache.has(ck))return agVarCache.get(ck);
-  const c=classifyPersonChanges(m,d=>d.Agreement===ag&&mDeptOk(d));
+  const c=classifyPersonChanges(m,inScope);
   if(!c){ agVarCache.set(ck,null); return null; }
   const cats={}; AG_VAR_CATS.forEach(x=>cats[x.k]={delta:0,people:[]});
   const mes=v=>(v||0)*HORAS_MES;
@@ -1892,7 +1902,7 @@ function agreementVarBreakdown(m,ag){
     if(Math.abs(delta)<1&&(k==='otros'||k==='proactivo')){ cats.otros.delta+=delta; return; }
     cats[k].delta+=delta; cats[k].people.push({name:it.name,delta,extra:it.extra});
   });
-  const res={m,pm:c.pm,ag,curTot,prevTot,pct:prevTot?(curTot-prevTot)/prevTot*100:null,cats};
+  const res={m,pm:c.pm,label,usesDeptFilter,curTot,prevTot,pct:prevTot?(curTot-prevTot)/prevTot*100:null,cats};
   agVarCache.set(ck,res);
   return res;
 }
@@ -1949,9 +1959,9 @@ function agVarTipHtml(r){
     const share=diff?` <span style="opacity:.6">${r.prevTot?((cat.delta/r.prevTot*100)>0?'+':'')+(cat.delta/r.prevTot*100).toFixed(1)+'%':''}</span>`:'';
     return `<div class="lvl-gap-tip-row" style="margin-top:6px;font-weight:700"><span>${c.lbl} (${ppl.length})</span><span style="font-family:var(--font-mono)">${fmtUsdSigned(cat.delta)}${share}</span></div>${names}${more}`;
   }).join('');
-  return `<div class="lvl-gap-tip-title">${r.ag} · ${ML[r.m]||r.m} vs ${ML[r.pm]||r.pm}: ${r.pct>0?'+':''}${r.pct.toFixed(1)}% (${fmtUsdSigned(diff)})</div>
+  return `<div class="lvl-gap-tip-title">${escAttr(r.label)} ·${ML[r.m]||r.m} vs ${ML[r.pm]||r.pm}: ${r.pct>0?'+':''}${r.pct.toFixed(1)}% (${fmtUsdSigned(diff)})</div>
     ${rows||'<div style="color:#AEB7C0">Sin cambios de costo</div>'}
-    <div class="lvl-gap-tip-foot">Montos mensuales (Costo USD/H × 168)${mselSelected.mdept.size?' · '+escAttr(mDeptLabel()):''}</div>`;
+    <div class="lvl-gap-tip-foot">Montos mensuales (Costo USD/H × 168)${r.usesDeptFilter&&mselSelected.mdept.size?' · '+escAttr(mDeptLabel()):''}</div>`;
 }
 window.toggleAgreementChartItem=function(t){
   if(selectedAgreementChartItems.has(t))selectedAgreementChartItems.delete(t);else selectedAgreementChartItems.add(t);
@@ -1996,7 +2006,7 @@ function renderMetricsTrend(){
     if(prevCostoTotal!==null&&prevCostoTotal>0){
       const varPct=(costoTotal-prevCostoTotal)/prevCostoTotal*100;
       const cls=varPct>0?'metric-var-up':(varPct<0?'metric-var-down':'metric-var-flat');
-      varHtml=`<span class="${cls}">${varPct>0?'+':''}${varPct.toFixed(1)}%</span>`;
+      varHtml=`<span class="${cls} tot-var" data-m="${m}">${varPct>0?'+':''}${varPct.toFixed(1)}%</span>`;
     }
     prevCostoTotal=costoTotal;
     const liveBadge=m===lastMonth?'<span class="metric-live-badge">En curso</span>':'';
@@ -2009,6 +2019,10 @@ function renderMetricsTrend(){
       <td>${varHtml}</td>
     </tr>`;
   }).join('');
+  initVarTip(tbody.closest('.metric-card'),'.tot-var',t=>{
+    const r=totalCostVarBreakdown(t.dataset.m);
+    return r?agVarTipHtml(r):'';
+  });
 }
 
 // Costo total por Departamento, mes a mes — siempre todos los deptos juntos (ignora
@@ -2029,10 +2043,26 @@ function renderDeptCostTrend(){
     const liveBadge=m===lastMonth?'<span class="metric-live-badge">En curso</span>':'';
     const cells=depts.map(dp=>{
       const c=costoTotalDelMes(monthRows.filter(d=>d.Department===dp));
-      return `<td>${c?fmtUsd(c):'<span style="color:var(--tbl-text3)">—</span>'}</td>`;
+      return `<td>${c?fmtUsd(c)+' '+deptVarBadge(m,dp):'<span style="color:var(--tbl-text3)">—</span>'}</td>`;
     }).join('');
-    return `<tr><td>${ML[m]||m}${liveBadge}</td>${cells}<td style="font-weight:700">${fmtUsd(costoTotalDelMes(monthRows))}</td></tr>`;
+    return `<tr><td>${ML[m]||m}${liveBadge}</td>${cells}<td style="font-weight:700">${fmtUsd(costoTotalDelMes(monthRows))} ${deptVarBadge(m,'__all__')}</td></tr>`;
   }).join('');
+  initVarTip(tbody.closest('.metric-card'),'.dept-var',t=>{
+    const r=deptVarBreakdown(t.dataset.m,t.dataset.dp);
+    return r?agVarTipHtml(r):'';
+  });
+}
+// Variación por Departamento: ignora el filtro de depto de arriba (igual que la tabla).
+// '__all__' = columna Total (toda la compañía).
+function deptVarBreakdown(m,dp){
+  if(dp==='__all__')return totalVarBreakdown(m,()=>true,'dept|__all__','Total compañía',false);
+  return totalVarBreakdown(m,d=>d.Department===dp,'dept|'+dp,dp,false);
+}
+function deptVarBadge(m,dp){
+  const r=deptVarBreakdown(m,dp);
+  if(!r||r.pct===null)return '';
+  const cls=r.pct>0.05?'metric-var-up':(r.pct<-0.05?'metric-var-down':'metric-var-flat');
+  return `<span class="ag-var dept-var ${cls}" data-m="${m}" data-dp="${escAttr(dp)}">${r.pct>0?'+':''}${r.pct.toFixed(1)}%</span>`;
 }
 
 // Costo total por tipo de Agreement, mes a mes — respeta metricsDept (a diferencia de la
@@ -2043,7 +2073,6 @@ function renderAgreementCostTrend(){
   const tbody=document.getElementById('metrics-agreement-cost-body');
   const sub=document.getElementById('metrics-agreement-cost-sub');
   sub.textContent=mDeptLabel();
-  agVarCache.clear(); // ALL_DATA puede haberse recargado; se recalcula en cada render
   if(!MONTHS.length){ tbody.innerHTML='<tr><td colspan="5"class="metric-empty" style="font-family:var(--font-sans)">Sin datos</td></tr>'; return; }
   const lastMonth=MONTHS[MONTHS.length-1];
   tbody.innerHTML=MONTHS.map(m=>{
@@ -2851,6 +2880,7 @@ window.showPerfCasesPeople=function(btn,dept){
 };
 
 function renderMetrics(){
+  agVarCache.clear(); // ALL_DATA puede haberse recargado: los desgloses se recalculan en cada render
   renderMetricsTrend();
   renderDeptCostTrend();
   renderDeptCostChart();
