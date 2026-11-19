@@ -92,6 +92,14 @@ SENIORITY_OVERRIDE_BY_EMAIL = {
     'sgavilan@makingsense.com':   ('DevSr2', 8),
 }
 
+# New Code fijo para personas cuyo Código de Bamboo no corresponde a ningún código de
+# Bandas Div. Lenkovich: Bamboo tiene "FinSsrAdv" pero se compara contra OM 05 (decisión
+# del usuario 19/11/2026). Igual que SENIORITY_OVERRIDE_BY_EMAIL, se apaga solo si el
+# Código de Bamboo cambia. Valor: (Código esperado en Bamboo, Código a usar para la banda).
+BAND_CODE_OVERRIDE_BY_EMAIL = {
+    'nlenkovich@makingsense.com': ('FinSsrAdv', 'OM 05'),
+}
+
 MONTH_FULL_ES = {
     1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
     5: 'Mayo',  6: 'Junio',   7: 'Julio', 8: 'Agosto',
@@ -437,6 +445,9 @@ def process_month(employees, job_lookup, vars_dict, bandas_lookup, month_date, t
             seniority = _sen_override[1]
         costo_usdh = calc_costo_usd_h(agreement, location, bill, payroll, per, vars_dict)
         new_code   = calc_new_code(level_code, agreement, location)
+        _band_override = BAND_CODE_OVERRIDE_BY_EMAIL.get(email)
+        if _band_override and level_code == _band_override[0]:
+            new_code = calc_new_code(_band_override[1], agreement, location)
 
         banda_vals = bandas_lookup.get(new_code)
         banda_min  = banda_vals[0] if banda_vals else None
