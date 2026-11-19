@@ -204,44 +204,64 @@ def download_employees(month_date):
     return filtered
 
 
-def build_job_status_lookup():
+def build_job_status_lookup(employees):
     """Returns dict email → sorted list of (date, bill, payroll) tuples.
 
     Stores ALL historical Cambio Proactivo entries so that:
     - calc_ultimo_cambio_proactivo can filter the date by month
     - process_month can use the historically correct Bill/PayRoll per month
+
+    Lee la tabla 'customCompensation' de CADA empleado directo (1 llamado por persona) en vez
+    del reporte guardado 740 ("Compensaciones - Job Status"). Se cambió el 16/09/2026: ese
+    reporte excluye a Finance, IT, MS - Customer Success, MS - Lab, MS - Operation Managment,
+    Viallion, MS - CEO Services y a 4 personas puntuales de MS - Sales & Marketing, PESE a que
+    el filtro de Departamento del reporte está bien configurado — se confirmó con la API que el
+    dato SÍ existe en Bamboo para todos ellos (incluye "Cambio Proactivo" en customChangeReason
+    con fechas recientes), así que el problema es interno del motor de reportes de BambooHR, no
+    de los datos ni de nuestro filtro. Leer la tabla directo por empleado evita depender de esa
+    configuración. Recibe `employees` (la misma lista ya bajada de report 701 en
+    download_employees(), que sí cubre a todo el mundo) para no tener que resolver los ids de
+    Bamboo dos veces.
     """
     base_url, auth = _bamboo_auth()
-    r = requests.get(
-        f'{base_url}/reports/740',
-        auth=auth,
-        headers={'Accept': 'application/json'},
-        params={'format': 'json'},
-    )
-    r.raise_for_status()
     lookup = {}
-    for rec in r.json().get('employees', []):
-        email = rec.get('employeeNumber')
-        if not email:
+    total = 0
+    for e in employees:
+        email = e.get('employeeNumber')
+        eid = e.get('id')
+        if not email or not eid:
             continue
-        d = _parse_date(rec.get('customEffectiveDate3'))
-        if not d:
+        r = requests.get(
+            f'{base_url}/employees/{eid}/tables/customCompensation',
+            auth=auth,
+            headers={'Accept': 'application/json'},
+        )
+        if r.status_code != 200:
             continue
-        bill    = rec.get('customBill')
-        payroll = rec.get('customPayRoll')
-        try: bill    = float(bill)    if bill    else None
-        except: bill = None
-        try: payroll = float(payroll) if payroll else None
-        except: payroll = None
-        if email not in lookup:
-            lookup[email] = []
-        # Avoid duplicates on same date
-        if not any(e[0] == d for e in lookup[email]):
-            lookup[email].append((d, bill, payroll))
-    # Sort each list chronologically
-    for email in lookup:
-        lookup[email].sort(key=lambda x: x[0])
-    total = sum(len(v) for v in lookup.values())
+        entries = []
+        for rec in r.json():
+            # Solo Cambios Proactivos: la tabla también tiene "Pauta Salarial ARG",
+            # "Nuevo Modo de Contratación" y altas sin motivo, que NO cuentan como
+            # Ultimo Cambio Proactivo (bug corregido 05/11/2026: tomaba la pauta de
+            # Mar-2026 como último cambio para casi todos).
+            if (rec.get('customChangeReason') or '').strip() != 'Cambio Proactivo':
+                continue
+            d = _parse_date(rec.get('customEffectiveDate3'))
+            if not d:
+                continue
+            bill    = rec.get('customBill')
+            payroll = rec.get('customPayRoll')
+            try: bill    = float(bill)    if bill    else None
+            except: bill = None
+            try: payroll = float(payroll) if payroll else None
+            except: payroll = None
+            # Avoid duplicates on same date
+            if not any(x[0] == d for x in entries):
+                entries.append((d, bill, payroll))
+        if entries:
+            entries.sort(key=lambda x: x[0])
+            lookup[email] = entries
+            total += len(entries)
     print(f'  Job Status: {len(lookup)} empleados, {total} cambios proactivos.')
     return lookup
 
@@ -769,7 +789,7 @@ def main():
 
     # ── 6. Job Status (Cambio Proactivo) ──────────────────────────────────────
     print('Descargando Job Status...')
-    job_lookup = build_job_status_lookup()
+    job_lookup = build_job_status_lookup(employees)
 
     # ── 7. Procesar datos ─────────────────────────────────────────────────────
     print('Procesando columnas calculadas...')
