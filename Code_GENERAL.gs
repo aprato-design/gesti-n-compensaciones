@@ -184,9 +184,11 @@ function _rowIsEmpty_(vals) {
 // ════════════════════════════════════════════════════════════════════
 
 /**
- * Lee el sheet externo de LC (Account/Proyecto, Fecha último LC, Aging LC, Status LC)
- * y arma un mapa por email (lowercase, trim) -> {account, fechaLC, agingLC, statusLC}.
- * Columnas: A=Account/Proyecto, C=Email, K=Fecha último LC, L=Aging LC (meses), M=Status LC.
+ * Lee el sheet externo de LC (Account/Proyecto, Fecha último LC, Aging LC, Status LC,
+ * Outcome LC) y arma un mapa por email (lowercase, trim) -> {account, fechaLC, agingLC,
+ * statusLC, outcomeLC}.
+ * Columnas: A=Account/Proyecto, C=Email, K=Fecha último LC, L=Aging LC (meses), M=Status LC,
+ * AB=Outcome LC.
  * Si un email aparece en más de una fila, gana la última (se asume la más reciente).
  */
 function getLCData_() {
@@ -201,18 +203,19 @@ function getLCData_() {
   var lastRow = sh.getLastRow();
   if (lastRow < 2) return {};
 
-  var data = sh.getRange(1, 1, lastRow, 13).getValues(); // A..M
+  var data = sh.getRange(1, 1, lastRow, 28).getValues(); // A..AB
   var map  = {};
   for (var i = 1; i < data.length; i++) {
     var row   = data[i];
     var email = String(row[2] || '').toLowerCase().trim(); // col C
     if (!email) continue;
     map[email] = {
-      account:  row[0]  || '',              // col A
-      fechaLC:  _fmtLCDate_(row[10]),        // col K
+      account:   row[0]  || '',              // col A
+      fechaLC:   _fmtLCDate_(row[10]),        // col K
       // col L — colores fijos por rango, ver agingLcBadge() en el frontend (no se lee color de la celda)
-      agingLC:  row[11] === '' || row[11] == null ? '' : row[11],
-      statusLC: row[12] || '',              // col M — colores fijos por valor, ver STATUS_LC_CLASS en el frontend
+      agingLC:   row[11] === '' || row[11] == null ? '' : row[11],
+      statusLC:  row[12] || '',              // col M — colores fijos por valor, ver STATUS_LC_CLASS en el frontend
+      outcomeLC: row[27] || '',              // col AB
     };
   }
   return map;
@@ -377,10 +380,11 @@ function getCompData_() {
 
     var lcEmail = String(obj['Employee #'] || '').toLowerCase().trim();
     var lc = lcMap[lcEmail];
-    obj['Account / Proyecto']  = lc ? lc.account  : '';
-    obj['Fecha ultimo LC']     = lc ? lc.fechaLC  : '';
-    obj['Aging LC (meses)']    = lc ? lc.agingLC  : '';
-    obj['Status LC']           = lc ? lc.statusLC : '';
+    obj['Account / Proyecto']  = lc ? lc.account   : '';
+    obj['Fecha ultimo LC']     = lc ? lc.fechaLC   : '';
+    obj['Aging LC (meses)']    = lc ? lc.agingLC   : '';
+    obj['Status LC']           = lc ? lc.statusLC  : '';
+    obj['Outcome LC']          = lc ? lc.outcomeLC : '';
 
     result.push(obj);
   }
@@ -487,6 +491,94 @@ function readAllActions_() {
     });
   }
   return result;
+}
+
+// ════════════════════════════════════════════════════════════════════
+//   NOTIFICACIÓN POR MAIL: EDICIÓN DE "OUTCOME LC"
+// ════════════════════════════════════════════════════════════════════
+
+var OUTCOME_LC_COL   = 28; // col AB en "Base Consolidada" del sheet de LC
+var OUTCOME_LC_NOTIFY = 'aprato@makingsense.com';
+
+/**
+ * Crea (una sola vez) el trigger instalable que dispara onOutcomeLcEdit_ cada vez que se
+ * edita el sheet de LC (LC_SHEET_ID). Correr esta función manualmente una vez desde el editor
+ * de Apps Script (seleccionar la función → Ejecutar) para activarla — los triggers instalables
+ * no se crean solos con solo desplegar el código.
+ * Es idempotente: si ya existe un trigger con este mismo handler sobre este mismo sheet, no
+ * crea uno duplicado.
+ */
+function installOutcomeLcTrigger_() {
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    var t = triggers[i];
+    if (t.getHandlerFunction() === 'onOutcomeLcEdit_'
+        && t.getTriggerSourceId() === LC_SHEET_ID) {
+      Logger.log('Trigger ya existente, no se crea otro.');
+      return;
+    }
+  }
+  ScriptApp.newTrigger('onOutcomeLcEdit_')
+    .forSpreadsheet(LC_SHEET_ID)
+    .onEdit()
+    .create();
+  Logger.log('Trigger creado.');
+}
+
+/**
+ * Wrapper sin "_" al final — Apps Script oculta del dropdown de "Ejecutar" del editor
+ * cualquier función cuyo nombre termine en "_" (convención de función privada), por eso
+ * installOutcomeLcTrigger_ nunca aparece ahí para poder seleccionarla y correrla a mano.
+ * Seleccionar y correr ESTA función una sola vez activa el trigger.
+ */
+function activarNotificacionOutcomeLC() {
+  installOutcomeLcTrigger_();
+}
+
+/**
+ * Handler del trigger instalable de onEdit sobre el sheet de LC. Filtra ediciones que:
+ * (a) sean en la tab "Base Consolidada" (LC_SHEET_GID), y
+ * (b) toquen la columna Outcome LC (AB, col 28) — incluye pegado/edición de rangos que la
+ *     abarquen, no solo edición de una sola celda.
+ * Por cada fila afectada dentro de ese rango, manda un mail a OUTCOME_LC_NOTIFY con
+ * nombre/email de la persona (cols B/C de esa misma fila) y el valor nuevo (y viejo, si el
+ * edit event lo tiene disponible — solo viene poblado para ediciones de una sola celda).
+ */
+function onOutcomeLcEdit_(e) {
+  if (!e || !e.range) return;
+  var sheet = e.range.getSheet();
+  if (sheet.getSheetId() !== LC_SHEET_GID) return;
+
+  var startCol = e.range.getColumn();
+  var endCol   = startCol + e.range.getNumColumns() - 1;
+  if (OUTCOME_LC_COL < startCol || OUTCOME_LC_COL > endCol) return;
+
+  var startRow = e.range.getRow();
+  var numRows  = e.range.getNumRows();
+  if (startRow < 2) return; // fila de headers, ignorar
+
+  var isSingleCell = (e.range.getNumRows() === 1 && e.range.getNumColumns() === 1);
+  var lines = [];
+
+  for (var r = 0; r < numRows; r++) {
+    var row = startRow + r;
+    var nombre = sheet.getRange(row, 2).getValue(); // col B
+    var email  = sheet.getRange(row, 3).getValue(); // col C
+    var nuevo  = sheet.getRange(row, OUTCOME_LC_COL).getValue();
+    var viejo  = isSingleCell ? (e.oldValue !== undefined ? e.oldValue : '') : '(no disponible)';
+    lines.push(
+      '- ' + (nombre || '(sin nombre)') + ' (' + (email || 'sin email') + '): '
+      + '"' + viejo + '" -> "' + nuevo + '"'
+    );
+  }
+
+  if (!lines.length) return;
+
+  MailApp.sendEmail({
+    to:      OUTCOME_LC_NOTIFY,
+    subject: 'Outcome LC actualizado (' + lines.length + (lines.length === 1 ? ' cambio' : ' cambios') + ')',
+    body:    'Se actualizó la columna Outcome LC en "Base Consolidada":\n\n' + lines.join('\n'),
+  });
 }
 
 // ════════════════════════════════════════════════════════════════════
