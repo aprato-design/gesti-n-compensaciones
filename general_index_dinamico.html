@@ -925,9 +925,15 @@ body.viewer .note-input{pointer-events:none;background-color:var(--ms-grey-50)!i
     <div class="msel-panel" id="proj-filter-panel"></div>
   </div>
   <span class="fl metrics-only-filter">Departamento:</span>
-  <select class="metrics-only-filter" id="metrics-dept-filter"></select>
+  <div class="msel metrics-only-filter" id="mdept-filter">
+    <button type="button" class="msel-btn" id="mdept-filter-btn"><span class="msel-label">Todos</span><span class="msel-caret">▾</span></button>
+    <div class="msel-panel" id="mdept-filter-panel"></div>
+  </div>
   <span class="fl metrics-only-filter">Level:</span>
-  <select class="metrics-only-filter" id="metrics-level-filter"></select>
+  <div class="msel metrics-only-filter" id="mlevel-filter">
+    <button type="button" class="msel-btn" id="mlevel-filter-btn"><span class="msel-label">Todos</span><span class="msel-caret">▾</span></button>
+    <div class="msel-panel" id="mlevel-filter-panel"></div>
+  </div>
   <span class="fl metrics-only-filter">Período:</span>
   <select class="metrics-only-filter" id="metrics-period-mode">
     <option value="month">Mensual</option>
@@ -1102,7 +1108,7 @@ const METRICS_TAB='__metricas__';
 // (ver "if(MONTHS.length && !MONTHS.includes(activeMonth))") — un valor hardcodeado como
 // '2026-01' rompía ese fallback apenas existiera data de enero, dejando el tablero entero
 // (tabla + Métricas) mostrando enero por defecto en cada carga en vez del mes más reciente.
-let activeMonth='',sortCol='Code (Level)',sortDir=1,page=1,filtered=[],metricsDept='',metricsLevel='';
+let activeMonth='',sortCol='Code (Level)',sortDir=1,page=1,filtered=[];
 // Filtro por click en la stats-bar: gap ('en'|'encima'|'debajo'|null) y agreement
 // ('Contractor'|'Plus Fijo'|'Empleado'|null) son ejes independientes (AND entre ellos),
 // cada uno exclusivo dentro de su propio eje (clickear de nuevo el mismo lo apaga).
@@ -1186,35 +1192,9 @@ function initDeptTabs(){
   const tabs=depts.map(dp=>`<button type="button" class="dept-tab${deptMode==='depts'&&selectedDepts.has(dp)?' active':''}" data-dept="${dp}" onclick="toggleDept('${dp.replace(/'/g,"\\'")}')">${dp}</button>`).join('');
   const metricsTab=`<button type="button" class="dept-tab dept-tab-metrics${deptMode==='metrics'?' active':''}" data-dept="${METRICS_TAB}" onclick="selectMetricsTab()">📊 Métricas</button>`;
   bar.innerHTML=allTab+tabs+metricsTab;
-  populateMetricsDeptFilter(depts);
-  populateMetricsLevelFilter();
   populateMetricsPeriodFilters();
 }
-function populateMetricsDeptFilter(depts){
-  const sel=document.getElementById('metrics-dept-filter');
-  if(!sel)return;
-  const list=depts||[...new Set(ALL_DATA.map(d=>d.Department).filter(Boolean))].sort();
-  if(!list.includes(metricsDept)) metricsDept='';
-  sel.innerHTML=`<option value="">Todos</option>`+list.map(dp=>`<option value="${dp}"${dp===metricsDept?' selected':''}>${dp}</option>`).join('');
-}
-document.getElementById('metrics-dept-filter').addEventListener('change',function(){
-  metricsDept=this.value;
-  applyFilters();
-});
-// Reusa mselOptions('level') (mismo Level normalizado a string que ya usa el filtro
-// table-only de Level) para que Métricas tenga su propio selector — el .msel de la
-// filter-bar se oculta en modo Métricas junto con el resto de table-only-filter.
-function populateMetricsLevelFilter(){
-  const sel=document.getElementById('metrics-level-filter');
-  if(!sel)return;
-  const list=mselOptions('level');
-  if(!list.includes(metricsLevel)) metricsLevel='';
-  sel.innerHTML=`<option value="">Todos</option>`+list.map(v=>`<option value="${v}"${v===metricsLevel?' selected':''}>${v}</option>`).join('');
-}
-document.getElementById('metrics-level-filter').addEventListener('change',function(){
-  metricsLevel=this.value;
-  applyFilters();
-});
+// Departamento/Level de Métricas: multi-select (mdept/mlevel en MSEL_CONFIGS, más abajo).
 
 // ── Período (Mensual/Trimestral/Semestral) para las cards "de personas" de Métricas ──
 // Trimestral/Semestral agrupan varios meses de MONTHS; ver dedupeLatestPerPerson() para
@@ -1344,12 +1324,28 @@ const MSEL_CONFIGS={
   // string acá para que el filtro compare siempre lo mismo (ver applyFilters).
   level:  { getField:d=>(d.Seniority===''||d.Seniority==null)?'':String(d.Seniority), staticOptions:null, noun:'levels' },
   proj:   { getField:d=>d['Account / Proyecto'], staticOptions:null, noun:'proyectos' },
+  // Filtros de la solapa Métricas (no afectan la tabla principal).
+  mdept:  { getField:d=>d.Department, staticOptions:null, noun:'departamentos' },
+  mlevel: { getField:d=>(d.Seniority===''||d.Seniority==null)?'':String(d.Seniority), staticOptions:null, noun:'levels', sort:'level' },
 };
-const mselSelected={code:new Set(),ag:new Set(),xm:new Set(),gap:new Set(),level:new Set(),proj:new Set()};
+const mselSelected={code:new Set(),ag:new Set(),xm:new Set(),gap:new Set(),level:new Set(),proj:new Set(),mdept:new Set(),mlevel:new Set()};
+function mDeptOk(d){ return !mselSelected.mdept.size||mselSelected.mdept.has(d.Department); }
+function mLevelOk(d){ return !mselSelected.mlevel.size||mselSelected.mlevel.has(String(d.Seniority)); }
+function mDeptLabel(){
+  const a=[...mselSelected.mdept].sort();
+  if(!a.length)return 'Todos los departamentos';
+  return a.length<=3?a.join(', '):`${a.length} departamentos`;
+}
+function mLevelLabel(){
+  const a=[...mselSelected.mlevel].sort((x,y)=>(parseFloat(x)-parseFloat(y))||String(x).localeCompare(String(y)));
+  return (a.length===1?'Level ':'Levels ')+a.join(', ');
+}
 
 function mselOptions(key){
   const cfg=MSEL_CONFIGS[key];
-  return cfg.staticOptions ? cfg.staticOptions.slice() : [...new Set(ALL_DATA.map(cfg.getField).filter(Boolean))].sort();
+  if(cfg.staticOptions)return cfg.staticOptions.slice();
+  const opts=[...new Set(ALL_DATA.map(cfg.getField).filter(Boolean))];
+  return cfg.sort==='level' ? opts.sort((a,b)=>{ const na=parseFloat(a),nb=parseFloat(b); if(isNaN(na)!==isNaN(nb))return isNaN(na)?1:-1; return (na-nb)||a.localeCompare(b); }) : opts.sort();
 }
 function populateMsel(key){
   const cfg=MSEL_CONFIGS[key];
@@ -1483,14 +1479,14 @@ function metricsFilteredDataBase(){
   const months=activePeriodMonths();
   const rows=ALL_DATA.filter(d=>{
     if(!months.includes(d.Month))return false;
-    if(metricsDept&&d.Department!==metricsDept)return false;
+    if(!mDeptOk(d))return false;
     return true;
   });
   return months.length>1?dedupeLatestPerPerson(rows):rows;
 }
 function metricsFilteredData(){
   return metricsFilteredDataBase().filter(d=>{
-    if(metricsLevel&&String(d.Seniority)!==metricsLevel)return false;
+    if(!mLevelOk(d))return false;
     return true;
   });
 }
@@ -1802,7 +1798,7 @@ function agreementChartSeries(){
 function agreementChartData(){
   const series=agreementChartSeries();
   return MONTHS.map(m=>{
-    const rows=ALL_DATA.filter(d=>d.Month===m && (!metricsDept||d.Department===metricsDept));
+    const rows=ALL_DATA.filter(d=>d.Month===m && mDeptOk(d));
     const values={};
     series.forEach(s=>{ values[s.key]=costoTotalDelMes(rows.filter(d=>d.Agreement===s.key)); });
     const total=costoTotalDelMes(rows);
@@ -1823,66 +1819,80 @@ function renderAgreementSelector(){
   initAgVarTip();
 }
 
-// ── Variación % por Agreement vs mes anterior, desglosada por causa ──
-// Compara persona por persona (Employee #) el mes m contra el anterior, dentro del agreement
-// y respetando el filtro de Departamento. Cada peso de diferencia cae en UNA causa, así que
-// las causas suman exacto la variación total:
-//   Altas            — está en m y no estaba en el mes anterior
-//   Bajas            — estaba en el mes anterior y ya no está en m
-//   Cambio de agreement/depto — sigue, pero entró/salió de este agreement (o del depto filtrado)
-//   Recategorización — mismo agreement, cambió Code (Level) o Level
-//   Cambio proactivo — mismo agreement y code, y "Ultimo Cambio Proactivo" = m
-//                      (ojo: esa columna hoy también registra pautas generales)
-//   Tipo de cambio / otros — resto de las diferencias de costo (FX de ARS/COP, correcciones)
+// Clasificación persona por persona del mes m vs el anterior — la usan Agreement y Costo
+// Promedio. `inScope(d)` define el grupo (agreement, depto, level, código...). Devuelve un item
+// por persona con la causa y sus costos USD/H (cur/prev; null si no aplica):
+//   alta / baja         — no estaba / ya no está en la nómina
+//   mov_in / mov_out    — sigue en la nómina pero entró/salió del grupo (cambió agreement, depto, level...)
+//   recat               — sigue en el grupo y cambió Code (Level) o Level
+//   proactivo           — sigue, mismo code, y "Ultimo Cambio Proactivo" = m
+//   otros               — resto (tipo de cambio ARS/COP, correcciones)
+const MONTH_ABBR_EN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function monthToUcp(m){ return MONTH_ABBR_EN[monthNum(m)-1]+'-'+m.slice(0,4); }
+function personKey(d){ return d['Employee #']||d['Last name, First name']; }
+function costoNum(d){ const c=parseFloat(d['Costo USD/H']); return isNaN(c)?null:c; }
+function movDesc(from,to,dir){
+  const parts=[];
+  if(from.Agreement!==to.Agreement)parts.push(`${from.Agreement||'—'} → ${to.Agreement||'—'}`);
+  if(from.Department!==to.Department)parts.push(`${String(from.Department||'—').replace(/^MS - /,'')} → ${String(to.Department||'—').replace(/^MS - /,'')}`);
+  if(String(from['Code (Level)']||'')!==String(to['Code (Level)']||''))parts.push(`${from['Code (Level)']||'—'} → ${to['Code (Level)']||'—'}`);
+  else if(String(from.Seniority||'')!==String(to.Seniority||''))parts.push(`Level ${from.Seniority||'—'} → ${to.Seniority||'—'}`);
+  return parts.join(', ')||(dir==='in'?'entró al grupo':'salió del grupo');
+}
+function classifyPersonChanges(m,inScope){
+  const idx=MONTHS.indexOf(m);
+  if(idx<1)return null;
+  const pm=MONTHS[idx-1];
+  const curAll=new Map(), prevAll=new Map();
+  ALL_DATA.forEach(d=>{ if(d.Month===m)curAll.set(personKey(d),d); else if(d.Month===pm)prevAll.set(personKey(d),d); });
+  const items=[];
+  const push=(k,d,cur,prev,extra)=>items.push({k,name:d['Last name, First name']||'—',cur,prev,extra});
+  curAll.forEach((d,key)=>{
+    if(!inScope(d))return;
+    const p=prevAll.get(key);
+    if(!p){ push('alta',d,costoNum(d),null); return; }
+    if(!inScope(p)){ push('mov_in',d,costoNum(d),null,movDesc(p,d,'in')); return; }
+    const recat=String(d['Code (Level)']||'')!==String(p['Code (Level)']||'')||String(d.Seniority||'')!==String(p.Seniority||'');
+    if(recat) push('recat',d,costoNum(d),costoNum(p),`${p['Code (Level)']||'—'} → ${d['Code (Level)']||'—'}`);
+    else push(String(d['Ultimo Cambio Proactivo']||'')===monthToUcp(m)?'proactivo':'otros',d,costoNum(d),costoNum(p));
+  });
+  prevAll.forEach((p,key)=>{
+    if(!inScope(p))return;
+    const d=curAll.get(key);
+    if(!d) push('baja',p,null,costoNum(p));
+    else if(!inScope(d)) push('mov_out',p,null,costoNum(p),movDesc(p,d,'out'));
+  });
+  return {m,pm,items};
+}
+
+// ── Variación % por Agreement vs mes anterior (montos ×168), desglosada por causa ──
+// Cada peso de diferencia cae en UNA causa, así que las causas suman exacto la variación total.
 const AG_VAR_CATS=[
   {k:'alta',lbl:'Altas'},{k:'baja',lbl:'Bajas'},{k:'recat',lbl:'Recategorizaciones'},
   {k:'proactivo',lbl:'Cambios proactivos'},{k:'mov',lbl:'Cambio de agreement/depto'},{k:'otros',lbl:'Tipo de cambio / otros'},
 ];
-const MONTH_ABBR_EN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function monthToUcp(m){ return MONTH_ABBR_EN[monthNum(m)-1]+'-'+m.slice(0,4); }
 function agreementVarRefMonth(){
   const months=activePeriodMonths().filter(m=>MONTHS.includes(m)).sort();
   return months.length?months[months.length-1]:MONTHS[MONTHS.length-1];
 }
 const agVarCache=new Map();
 function agreementVarBreakdown(m,ag){
-  const ck=m+'|'+ag+'|'+(metricsDept||'');
+  const ck=m+'|'+ag+'|'+[...mselSelected.mdept].sort().join(',');
   if(agVarCache.has(ck))return agVarCache.get(ck);
-  const idx=MONTHS.indexOf(m);
-  if(idx<1){ agVarCache.set(ck,null); return null; }
-  const pm=MONTHS[idx-1];
-  const keyOf=d=>d['Employee #']||d['Last name, First name'];
-  const cost=d=>{ const c=parseFloat(d['Costo USD/H']); return isNaN(c)?0:c*HORAS_MES; };
-  const inScope=d=>d.Agreement===ag&&(!metricsDept||d.Department===metricsDept);
-  const curAll=new Map(), prevAll=new Map();
-  ALL_DATA.forEach(d=>{ if(d.Month===m)curAll.set(keyOf(d),d); else if(d.Month===pm)prevAll.set(keyOf(d),d); });
-  const cats={}; AG_VAR_CATS.forEach(c=>cats[c.k]={delta:0,people:[]});
-  // Diferencias < $1/mes (redondeos) suman en "otros" pero no se listan como persona.
-  const add=(k,d,delta,extra)=>{
-    if(Math.abs(delta)<1&&(k==='otros'||k==='proactivo')){ cats.otros.delta+=delta; return; }
-    cats[k].delta+=delta; cats[k].people.push({name:d['Last name, First name']||'—',delta,extra});
-  };
+  const c=classifyPersonChanges(m,d=>d.Agreement===ag&&mDeptOk(d));
+  if(!c){ agVarCache.set(ck,null); return null; }
+  const cats={}; AG_VAR_CATS.forEach(x=>cats[x.k]={delta:0,people:[]});
+  const mes=v=>(v||0)*HORAS_MES;
   let curTot=0, prevTot=0;
-  curAll.forEach((d,key)=>{
-    if(!inScope(d))return;
-    curTot+=cost(d);
-    const p=prevAll.get(key);
-    if(!p){ add('alta',d,cost(d)); return; }
-    if(!inScope(p)){ add('mov',d,cost(d),p.Agreement!==ag?`desde ${p.Agreement||'—'}`:`desde ${String(p.Department||'—').replace(/^MS - /,'')}`); return; }
-    const delta=cost(d)-cost(p);
-    if(String(d['Code (Level)']||'')!==String(p['Code (Level)']||'')||String(d.Seniority||'')!==String(p.Seniority||''))
-      add('recat',d,delta,`${p['Code (Level)']||'—'} → ${d['Code (Level)']||'—'}`);
-    else if(String(d['Ultimo Cambio Proactivo']||'')===monthToUcp(m)) add('proactivo',d,delta);
-    else add('otros',d,delta);
+  c.items.forEach(it=>{
+    curTot+=mes(it.cur); prevTot+=mes(it.prev);
+    const k=(it.k==='mov_in'||it.k==='mov_out')?'mov':it.k;
+    const delta=mes(it.cur)-mes(it.prev);
+    // Diferencias < $1/mes (redondeos) suman en "otros" pero no se listan como persona.
+    if(Math.abs(delta)<1&&(k==='otros'||k==='proactivo')){ cats.otros.delta+=delta; return; }
+    cats[k].delta+=delta; cats[k].people.push({name:it.name,delta,extra:it.extra});
   });
-  prevAll.forEach((p,key)=>{
-    if(!inScope(p))return;
-    prevTot+=cost(p);
-    const d=curAll.get(key);
-    if(!d){ add('baja',p,-cost(p)); return; }
-    if(!inScope(d))add('mov',p,-cost(p),d.Agreement!==ag?`pasó a ${d.Agreement||'—'}`:`pasó a ${String(d.Department||'—').replace(/^MS - /,'')}`);
-  });
-  const res={m,pm,ag,curTot,prevTot,pct:prevTot?(curTot-prevTot)/prevTot*100:null,cats};
+  const res={m,pm:c.pm,ag,curTot,prevTot,pct:prevTot?(curTot-prevTot)/prevTot*100:null,cats};
   agVarCache.set(ck,res);
   return res;
 }
@@ -1893,34 +1903,40 @@ function agVarBadge(m,ag){
   return `<span class="ag-var ${cls}" data-m="${m}" data-ag="${ag}">${r.pct>0?'+':''}${r.pct.toFixed(1)}%</span>`;
 }
 function fmtUsdSigned(n){ return (n>=0?'+':'−')+fmtUsd(Math.abs(n)); }
-function initAgVarTip(){
-  if(document.getElementById('ag-var-tip'))return;
-  const tip=document.createElement('div');
-  tip.id='ag-var-tip'; tip.className='lvl-gap-tip';
-  document.body.appendChild(tip);
-  const card=document.getElementById('agreement-cost-legend').closest('.metric-card');
+// Tooltip compartido para los % de variación con desglose (Agreement y Costo Promedio).
+function initVarTip(card,selector,htmlFn){
+  if(!card||card.dataset.varTip)return;
+  card.dataset.varTip='1';
+  let tip=document.getElementById('var-tip');
+  if(!tip){ tip=document.createElement('div'); tip.id='var-tip'; tip.className='lvl-gap-tip'; document.body.appendChild(tip); }
   card.addEventListener('mouseover',e=>{
-    const t=e.target.closest('.ag-var'); if(!t)return;
-    const r=agreementVarBreakdown(t.dataset.m,t.dataset.ag); if(!r)return;
-    tip.innerHTML=agVarTipHtml(r);
+    const t=e.target.closest(selector); if(!t)return;
+    const html=htmlFn(t); if(!html)return;
+    tip.innerHTML=html;
     tip.classList.add('show');
-    placeAgVarTip(e);
+    placeVarTip(e);
   });
-  card.addEventListener('mousemove',e=>{ if(e.target.closest('.ag-var'))placeAgVarTip(e); });
+  card.addEventListener('mousemove',e=>{ if(e.target.closest(selector))placeVarTip(e); });
   card.addEventListener('mouseout',e=>{
-    const t=e.target.closest('.ag-var'); if(!t)return;
+    const t=e.target.closest(selector); if(!t)return;
     if(e.relatedTarget&&t.contains(e.relatedTarget))return;
     tip.classList.remove('show');
   });
 }
-function placeAgVarTip(e){
-  const tip=document.getElementById('ag-var-tip');
+function placeVarTip(e){
+  const tip=document.getElementById('var-tip');
   const pad=12,w=tip.offsetWidth,h=tip.offsetHeight;
   let x=e.clientX-w/2, y=e.clientY-h-pad;
   if(y<8)y=e.clientY+pad+8;
   x=Math.max(8,Math.min(x,window.innerWidth-w-8));
   y=Math.min(y,window.innerHeight-h-8);
   tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+function initAgVarTip(){
+  initVarTip(document.getElementById('agreement-cost-legend').closest('.metric-card'),'.ag-var',t=>{
+    const r=agreementVarBreakdown(t.dataset.m,t.dataset.ag);
+    return r?agVarTipHtml(r):'';
+  });
 }
 const AG_VAR_TIP_NAMES=4;
 function agVarTipHtml(r){
@@ -1935,7 +1951,7 @@ function agVarTipHtml(r){
   }).join('');
   return `<div class="lvl-gap-tip-title">${r.ag} · ${ML[r.m]||r.m} vs ${ML[r.pm]||r.pm}: ${r.pct>0?'+':''}${r.pct.toFixed(1)}% (${fmtUsdSigned(diff)})</div>
     ${rows||'<div style="color:#AEB7C0">Sin cambios de costo</div>'}
-    <div class="lvl-gap-tip-foot">Montos mensuales (Costo USD/H × 168)${metricsDept?' · '+escAttr(metricsDept):''}</div>`;
+    <div class="lvl-gap-tip-foot">Montos mensuales (Costo USD/H × 168)${mselSelected.mdept.size?' · '+escAttr(mDeptLabel()):''}</div>`;
 }
 window.toggleAgreementChartItem=function(t){
   if(selectedAgreementChartItems.has(t))selectedAgreementChartItems.delete(t);else selectedAgreementChartItems.add(t);
@@ -1946,7 +1962,7 @@ function renderAgreementCostChart(){
     const types=AGREEMENT_COST_TYPES.filter(t=>selectedAgreementChartItems.has(t));
     const series=types.map(t=>({key:t,label:t,color:AGREEMENT_CHART_COLORS[t]}));
     const data=MONTHS.map(m=>{
-      const rows=ALL_DATA.filter(d=>d.Month===m && (!metricsDept||d.Department===metricsDept));
+      const rows=ALL_DATA.filter(d=>d.Month===m && mDeptOk(d));
       const values={};
       series.forEach(s=>{ values[s.key]=costoTotalDelMes(rows.filter(d=>d.Agreement===s.key)); });
       return {month:m,label:ML[m]||m,values};
@@ -1965,12 +1981,12 @@ function renderAgreementCostChart(){
 function renderMetricsTrend(){
   const tbody=document.getElementById('metrics-trend-body');
   const sub=document.getElementById('metrics-trend-sub');
-  sub.textContent=metricsDept||'Todos los departamentos';
+  sub.textContent=mDeptLabel();
   if(!MONTHS.length){ tbody.innerHTML='<tr><td colspan="6" class="metric-empty" style="font-family:var(--font-sans)">Sin datos</td></tr>'; return; }
   const lastMonth=MONTHS[MONTHS.length-1];
   let prevCostoTotal=null;
   tbody.innerHTML=MONTHS.map(m=>{
-    const rows=ALL_DATA.filter(d=>d.Month===m && (!metricsDept||d.Department===metricsDept));
+    const rows=ALL_DATA.filter(d=>d.Month===m && mDeptOk(d));
     const total=rows.length;
     const healthy=rows.filter(d=>SALUDABLE_GAP_SET.has(d['% GAP Banda'])).length;
     const pctSaludable=total?(healthy/total*100).toFixed(1)+'%':'—';
@@ -2026,12 +2042,12 @@ const AGREEMENT_COST_TYPES=['Contractor','Plus Fijo','Empleado'];
 function renderAgreementCostTrend(){
   const tbody=document.getElementById('metrics-agreement-cost-body');
   const sub=document.getElementById('metrics-agreement-cost-sub');
-  sub.textContent=metricsDept||'Todos los departamentos';
+  sub.textContent=mDeptLabel();
   agVarCache.clear(); // ALL_DATA puede haberse recargado; se recalcula en cada render
   if(!MONTHS.length){ tbody.innerHTML='<tr><td colspan="5"class="metric-empty" style="font-family:var(--font-sans)">Sin datos</td></tr>'; return; }
   const lastMonth=MONTHS[MONTHS.length-1];
   tbody.innerHTML=MONTHS.map(m=>{
-    const monthRows=ALL_DATA.filter(d=>d.Month===m && (!metricsDept||d.Department===metricsDept));
+    const monthRows=ALL_DATA.filter(d=>d.Month===m && mDeptOk(d));
     const liveBadge=m===lastMonth?'<span class="metric-live-badge">En curso</span>':'';
     const cells=AGREEMENT_COST_TYPES.map(ag=>`<td>${fmtUsd(costoTotalDelMes(monthRows.filter(d=>d.Agreement===ag)))} ${agVarBadge(m,ag)}</td>`).join('');
     return `<tr><td>${ML[m]||m}${liveBadge}</td>${cells}<td style="font-weight:700">${fmtUsd(costoTotalDelMes(monthRows))}</td></tr>`;
@@ -2312,7 +2328,7 @@ function levelTrendData(){
   return MONTHS.map(m=>{
     const values={};
     series.forEach(s=>{
-      const rows=ALL_DATA.filter(d=>d.Month===m&&(!metricsDept||d.Department===metricsDept)&&String(d.Seniority)===s.key);
+      const rows=ALL_DATA.filter(d=>d.Month===m&&mDeptOk(d)&&String(d.Seniority)===s.key);
       const total=rows.length;
       const healthy=rows.filter(d=>SALUDABLE_GAP_SET.has(d['% GAP Banda'])).length;
       values[s.key]=total?healthy/total*100:0;
@@ -2377,7 +2393,7 @@ function renderSalaryReview(){
 // según el mes, ver getCasosData_() en Code_GENERAL.gs) — acá solo se agrupa y cuenta.
 function performanceCasesByDept(){
   const months=activePeriodMonths();
-  let rows=ALL_DATA.filter(d=>months.includes(d.Month) && (!metricsLevel||String(d.Seniority)===metricsLevel));
+  let rows=ALL_DATA.filter(d=>months.includes(d.Month) && mLevelOk(d));
   if(months.length>1)rows=dedupeLatestPerPerson(rows);
   const byDept={};
   rows.forEach(d=>{
@@ -2393,7 +2409,7 @@ function renderPerfCasesByDept(){
   const sub=document.getElementById('metrics-perfcases-sub');
   const body=document.getElementById('metrics-perfcases-body');
   const data=performanceCasesByDept();
-  const lvlLbl=metricsLevel?`Level ${metricsLevel} — `:'';
+  const lvlLbl=mselSelected.mlevel.size?`${mLevelLabel()} — `:'';
   sub.textContent=`${lvlLbl}${periodLabel()} — todos los departamentos, no depende del filtro de Departamento de arriba`;
   if(!data.length){ body.innerHTML='<div class="metric-empty">Sin datos para este período/level</div>'; return; }
   body.innerHTML=data.map(r=>{
@@ -2434,8 +2450,8 @@ function renderProjectCost(){
   const kpis=document.getElementById('proj-cost-kpis');
   const body=document.getElementById('proj-cost-body');
   if(!body)return;
-  const lvlLbl=metricsLevel?` — Level ${metricsLevel}`:'';
-  sub.textContent=`${periodLabel()} — ${metricsDept||'Todos los departamentos'}${lvlLbl} — costo mensual (Costo USD/H × ${HORAS_MES}hs). La cuenta es la asignación actual según el sheet de LC.`;
+  const lvlLbl=mselSelected.mlevel.size?` — ${mLevelLabel()}`:'';
+  sub.textContent=`${periodLabel()} — ${mDeptLabel()}${lvlLbl} — costo mensual (Costo USD/H × ${HORAS_MES}hs). La cuenta es la asignación actual según el sheet de LC.`;
   const data=metricsFilteredData();
   const groups={};
   data.forEach(d=>{
@@ -2503,13 +2519,13 @@ function avgCostoScopeOk(d){
   return avgCostoMode!=='level'||!avgCostoDeptScope.size||avgCostoDeptScope.has(d.Department);
 }
 function avgCostoBaseRows(m){
-  return ALL_DATA.filter(d=>d.Month===m&&(!metricsDept||d.Department===metricsDept)&&(!metricsLevel||String(d.Seniority)===metricsLevel)&&avgCostoScopeOk(d));
+  return ALL_DATA.filter(d=>d.Month===m&&mDeptOk(d)&&mLevelOk(d)&&avgCostoScopeOk(d));
 }
 function avgCostoGroupKey(d){
   return avgCostoMode==='dept'?d.Department:((d.Seniority===''||d.Seniority==null)?'':String(d.Seniority));
 }
 function avgCostoAvailableItems(){
-  const rows=ALL_DATA.filter(d=>(!metricsDept||d.Department===metricsDept)&&(!metricsLevel||String(d.Seniority)===metricsLevel)&&avgCostoScopeOk(d));
+  const rows=ALL_DATA.filter(d=>mDeptOk(d)&&mLevelOk(d)&&avgCostoScopeOk(d));
   const set=new Set();
   rows.forEach(d=>{ const v=avgCostoGroupKey(d); if(v)set.add(v); });
   const arr=[...set];
@@ -2531,7 +2547,7 @@ function avgCostoAvailableItems(){
 let selectedAvgCostoCodes=new Set();
 function avgCostoAvailableCodes(){
   if(avgCostoMode!=='dept'||!selectedAvgCostoItems.size)return[];
-  const rows=ALL_DATA.filter(d=>(!metricsDept||d.Department===metricsDept)&&(!metricsLevel||String(d.Seniority)===metricsLevel)&&selectedAvgCostoItems.has(d.Department));
+  const rows=ALL_DATA.filter(d=>mDeptOk(d)&&mLevelOk(d)&&selectedAvgCostoItems.has(d.Department));
   return [...new Set(rows.map(d=>d['Code (Level)']).filter(Boolean))].sort();
 }
 function avgCostoChartSeries(){
@@ -2606,7 +2622,7 @@ function renderAvgCostoDeptScope(){
   if(!el)return;
   if(avgCostoMode!=='level'){ el.hidden=true; el.innerHTML=''; return; }
   el.hidden=false;
-  const depts=[...new Set(ALL_DATA.filter(d=>!metricsDept||d.Department===metricsDept).map(d=>d.Department).filter(Boolean))].sort();
+  const depts=[...new Set(ALL_DATA.filter(d=>mDeptOk(d)).map(d=>d.Department).filter(Boolean))].sort();
   el.innerHTML=`<span class="chart-pill-label">Acotar a depto(s) (vacío = a nivel general):</span>`
     +depts.map(dp=>`<button type="button" class="chart-pill${avgCostoDeptScope.has(dp)?' active':''}" onclick="toggleAvgCostoDeptScope('${dp.replace(/'/g,"\\'")}')">${dp.replace(/^MS - /,'')}</button>`).join('');
 }
@@ -2623,23 +2639,104 @@ function renderAvgCostoChart(){
   renderLineChart({svgId:'avgcosto-chart-svg',legendId:'avgcosto-legend',tooltipId:'avgcosto-tooltip',data,series,yFmt:v=>'$'+v.toFixed(1),zoom:true,pointLabels:true});
   renderAvgCostoTable(data,series);
 }
-// Tabla mensual debajo del gráfico: costo promedio de cada serie + variación % vs mes anterior.
+// Tabla mensual debajo del gráfico: costo promedio de cada serie, su equivalente mensual
+// (×168) y la variación % vs mes anterior — el % tiene tooltip con el desglose por causa.
 function renderAvgCostoTable(data,series){
   const head=document.getElementById('avgcosto-table-head');
   const body=document.getElementById('avgcosto-table-body');
   if(!head||!body)return;
-  head.innerHTML='<th>Mes</th>'+series.map(s=>`<th><span class="viz-legend-swatch" style="display:inline-block;margin-right:6px;background:${s.color}"></span>${s.label}</th><th>Var. %</th>`).join('');
-  if(!data.length){ body.innerHTML=`<tr><td colspan="${1+series.length*2}" class="metric-empty" style="font-family:var(--font-sans)">Sin datos</td></tr>`; return; }
+  head.innerHTML='<th>Mes</th>'+series.map(s=>`<th><span class="viz-legend-swatch" style="display:inline-block;margin-right:6px;background:${s.color}"></span>${s.label}</th><th>Mensual (×${HORAS_MES}hs)</th><th>Var. %</th>`).join('');
+  if(!data.length){ body.innerHTML=`<tr><td colspan="${1+series.length*3}" class="metric-empty" style="font-family:var(--font-sans)">Sin datos</td></tr>`; return; }
   const lastMonth=MONTHS[MONTHS.length-1];
+  const dash='<span style="color:var(--tbl-text3)">—</span>';
   body.innerHTML=data.map((d,i)=>{
     const prev=i?data[i-1]:null;
     const cells=series.map(s=>{
       const v=d.values[s.key]||0, pv=prev?(prev.values[s.key]||0):0;
-      return `<td>${v?'$'+v.toFixed(2):'<span style="color:var(--tbl-text3)">—</span>'}</td><td>${varPctHtml(v,pv)}</td>`;
+      let varCell=varPctHtml(v,pv);
+      if(v&&pv)varCell=varCell.replace('<span class="','<span data-m="'+d.month+'" data-s="'+escAttr(s.key)+'" class="avg-var ');
+      return `<td>${v?'$'+v.toFixed(2):dash}</td><td>${v?fmtUsd(v*HORAS_MES):dash}</td><td>${varCell}</td>`;
     }).join('');
     const live=d.month===lastMonth?'<span class="metric-live-badge">En curso</span>':'';
     return `<tr><td>${d.label}${live}</td>${cells}</tr>`;
   }).join('');
+  initVarTip(body.closest('.metric-card'),'.avg-var',t=>{
+    const r=avgCostoVarBreakdown(t.dataset.m,t.dataset.s);
+    return r?avgVarTipHtml(r):'';
+  });
+}
+
+// Mismo grupo de personas que usa avgCostoChartData() para la serie `key`.
+function avgCostoSeriesScope(key){
+  const series=avgCostoChartSeries();
+  const useGeneral=series.length===1&&series[0].key==='__general__';
+  const byCode=avgCostoMode==='dept'&&selectedAvgCostoCodes.size>0&&!useGeneral;
+  const base=d=>mDeptOk(d)&&mLevelOk(d)&&avgCostoScopeOk(d)&&costoNum(d)!==null;
+  if(key==='__general__')return base;
+  if(byCode)return d=>base(d)&&d['Code (Level)']===key;
+  return d=>base(d)&&avgCostoGroupKey(d)===key;
+}
+// Desglose de la variación de un PROMEDIO: a diferencia de un total, las altas/bajas también
+// cambian la cantidad de personas. Se descompone en 3 pasos encadenados, exactos:
+//   1) cambios de costo de quienes siguen (recat/proactivo/otros): ΔS / n_ant
+//   2) salidas (bajas + salieron del grupo): cada una aporta (prom1 − su costo) / n2
+//   3) entradas (altas + entraron al grupo): cada una aporta (su costo − prom2) / n3
+// La suma de todos los aportes = promedio actual − promedio anterior.
+const AVG_VAR_CATS=[
+  {k:'alta',lbl:'Altas'},{k:'baja',lbl:'Bajas'},{k:'recat',lbl:'Recategorizaciones'},
+  {k:'proactivo',lbl:'Cambios proactivos'},{k:'mov',lbl:'Cambio de depto/level/agreement'},{k:'otros',lbl:'Tipo de cambio / otros'},
+];
+function avgCostoVarBreakdown(m,key){
+  const c=classifyPersonChanges(m,avgCostoSeriesScope(key));
+  if(!c)return null;
+  const cats={}; AVG_VAR_CATS.forEach(x=>cats[x.k]={effect:0,people:[]});
+  const add=(k,effect,p)=>{ cats[k].effect+=effect; if(p)cats[k].people.push(Object.assign({effect},p)); };
+  const stay=c.items.filter(it=>it.k==='recat'||it.k==='proactivo'||it.k==='otros');
+  const outs=c.items.filter(it=>it.k==='baja'||it.k==='mov_out');
+  const ins=c.items.filter(it=>it.k==='alta'||it.k==='mov_in');
+  const n0=stay.length+outs.length;
+  if(!n0)return null;
+  const S0=stay.reduce((a,it)=>a+it.prev,0)+outs.reduce((a,it)=>a+it.prev,0);
+  const A0=S0/n0;
+  // 1) cambios de quienes siguen
+  let S1=S0;
+  stay.forEach(it=>{
+    const delta=it.cur-it.prev; S1+=delta;
+    const effect=delta/n0;
+    if(Math.abs(delta)<0.005&&it.k!=='recat'){ cats.otros.effect+=effect; return; }
+    add(it.k,effect,{name:it.name,detail:`${delta>=0?'+':'−'}$${Math.abs(delta).toFixed(2)}/h`,extra:it.extra});
+  });
+  const A1=S1/n0;
+  // 2) salidas
+  const n2=n0-outs.length;
+  const S2=S1-outs.reduce((a,it)=>a+it.prev,0);
+  const A2=n2?S2/n2:A1;
+  outs.forEach(it=>add(it.k==='baja'?'baja':'mov',n2?(A1-it.prev)/n2:0,{name:it.name,detail:`$${it.prev.toFixed(2)}/h`,extra:it.extra}));
+  // 3) entradas
+  const n3=n2+ins.length;
+  const S3=S2+ins.reduce((a,it)=>a+it.cur,0);
+  const A3=n3?S3/n3:A2;
+  ins.forEach(it=>add(it.k==='alta'?'alta':'mov',n3?(it.cur-A2)/n3:0,{name:it.name,detail:`$${it.cur.toFixed(2)}/h`,extra:it.extra}));
+  // Si quedó vacío el paso 2 (n2=0), el aporte de las salidas se absorbe en el de entradas.
+  if(!n2&&outs.length){ const fix=(A3-A0)-AVG_VAR_CATS.reduce((a,x)=>a+cats[x.k].effect,0); cats.baja.effect+=fix; }
+  const label=(avgCostoChartSeries().find(s=>s.key===key)||{label:key}).label;
+  return {m,pm:c.pm,label,prevAvg:A0,curAvg:A3,n0,n3,pct:A0?(A3-A0)/A0*100:null,cats};
+}
+const AVG_VAR_TIP_NAMES=4;
+function fmtHrSigned(v){ return (v>=0?'+':'−')+'$'+Math.abs(v).toFixed(2)+'/h'; }
+function avgVarTipHtml(r){
+  const rows=AVG_VAR_CATS.filter(c=>r.cats[c.k].people.length||Math.abs(r.cats[c.k].effect)>=0.005).map(c=>{
+    const cat=r.cats[c.k];
+    const ppl=[...cat.people].sort((a,b)=>Math.abs(b.effect)-Math.abs(a.effect));
+    const names=ppl.slice(0,AVG_VAR_TIP_NAMES).map(p=>`<div class="lvl-gap-tip-row" style="padding-left:12px;font-size:10.5px"><span class="lvl-gap-tip-name">${escAttr(p.name)}${p.extra?` <span style="opacity:.6">(${escAttr(p.extra)})</span>`:''}</span><span style="font-family:var(--font-mono)">${p.detail}</span></div>`).join('');
+    const more=ppl.length>AVG_VAR_TIP_NAMES?`<div class="lvl-gap-tip-row" style="padding-left:12px;font-size:10px;color:#AEB7C0">y ${ppl.length-AVG_VAR_TIP_NAMES} más</div>`:'';
+    const share=r.prevAvg?` <span style="opacity:.6">${cat.effect/r.prevAvg*100>=0?'+':''}${(cat.effect/r.prevAvg*100).toFixed(1)}%</span>`:'';
+    return `<div class="lvl-gap-tip-row" style="margin-top:6px;font-weight:700"><span>${c.lbl}${ppl.length?` (${ppl.length})`:''}</span><span style="font-family:var(--font-mono)">${fmtHrSigned(cat.effect)}${share}</span></div>${names}${more}`;
+  }).join('');
+  return `<div class="lvl-gap-tip-title">${escAttr(r.label)} · ${ML[r.m]||r.m} vs ${ML[r.pm]||r.pm}: ${r.pct>0?'+':''}${r.pct.toFixed(1)}%</div>
+    <div style="font-size:10.5px;color:#D8DEE4;white-space:nowrap">Promedio $${r.prevAvg.toFixed(2)} → $${r.curAvg.toFixed(2)}/h (${fmtUsd(r.prevAvg*HORAS_MES)} → ${fmtUsd(r.curAvg*HORAS_MES)}/mes) · ${r.n0} → ${r.n3} personas</div>
+    ${rows||'<div style="color:#AEB7C0">Sin cambios</div>'}
+    <div class="lvl-gap-tip-foot">Cada causa = cuánto movió el promedio · al lado de cada persona: su cambio o su costo USD/H</div>`;
 }
 function varPctHtml(cur,prev){
   if(!prev||!cur)return '<span class="metric-var-na">—</span>';
@@ -2747,7 +2844,7 @@ window.showProjectPeople=function(btn,i){
 window.showPerfCasesPeople=function(btn,dept){
   openPeopleList(`${dept.replace(/^MS - /,'')} — con caso abierto (Casos de Performance)`,()=>{
     const months=activePeriodMonths();
-    let rows=ALL_DATA.filter(d=>months.includes(d.Month)&&d.Department===dept&&(!metricsLevel||String(d.Seniority)===metricsLevel));
+    let rows=ALL_DATA.filter(d=>months.includes(d.Month)&&d.Department===dept&&mLevelOk(d));
     if(months.length>1)rows=dedupeLatestPerPerson(rows);
     return rows.filter(d=>d['Caso Abierto']);
   },btn);
@@ -2767,8 +2864,8 @@ function renderMetrics(){
   const data=metricsFilteredData();
   const total=data.length;
   const mesLbl=periodLabel();
-  const deptLbl=metricsDept||'Todos los departamentos';
-  const lvlLbl=metricsLevel?` — Level ${metricsLevel}`:'';
+  const deptLbl=mDeptLabel();
+  const lvlLbl=mselSelected.mlevel.size?` — ${mLevelLabel()}`:'';
   document.getElementById('metrics-summary').innerHTML=`<button type="button" class="people-count-btn${peopleListOpen?' open':''}" id="metrics-people-toggle" onclick="togglePeopleList()"><strong>${total}</strong> persona${total===1?'':'s'}</button> — ${mesLbl} — ${deptLbl}${lvlLbl}`;
   renderPeopleList(data);
   const saludableBadge=document.getElementById('banda-saludable-badge');
