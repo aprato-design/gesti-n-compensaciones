@@ -478,6 +478,18 @@ def next_level_key(new_code: str):
     return f"{prefix} {int(num) + 1}"
 
 
+def level_number(new_code: str, seniority=None):
+    """Numeric level (e.g. 'SEN 07-C' -> 7), independent of the department
+    prefix. Falls back to the Seniority column for non-standard codes."""
+    m = re.match(r'^[A-Z]+\s+0*(\d+)-', str(new_code or '').strip())
+    if m:
+        return int(m.group(1))
+    try:
+        return int(float(str(seniority).strip()))
+    except (TypeError, ValueError):
+        return None
+
+
 def get_next_code(new_code: str, bandas_df: pd.DataFrame):
     if not new_code:
         return None
@@ -1262,14 +1274,45 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
     if nxt_level:
         mask = mask | (row_levels == nxt_level)
 
+    # Sumar todo el level (cross-departamento). Tipo / nuevo code se eligen más
+    # abajo en "Propuesta"; acá se leen del session_state (o del caso guardado).
+    tipo_sel = st.session_state.get(
+        'form_tipo', caso.get('tipo', TIPOS_CASO[0]) if is_edit else TIPOS_CASO[0])
+    cross_level = None
+    if 'Recat' in str(tipo_sel):
+        stored_tc_sel = caso.get('target_code', '') if is_edit else ''
+        tc_sel = st.session_state.get('form_target_code', stored_tc_sel or next_code or '')
+        cross_level = level_number(tc_sel) if tc_sel else None
+        cross_motivo = 'level destino de la recat'
+    elif tipo_sel == 'Ajuste compensación':
+        cross_level = level_number(new_code_empleado, seniority)
+        cross_motivo = 'mismo level'
+    cross_label_nivel = None
+    if cross_level is not None and st.toggle(
+            f'🔍 Sumar todos los colaboradores del level {cross_level} — '
+            f'todos los departamentos ({cross_motivo})',
+            key='form_level_cross'):
+        cross_label_nivel = f'🔀 Level {cross_level}'
+        row_lv = empleados_df.apply(lambda r: level_number(r['new_code'], r.get('seniority')), axis=1)
+        extra_mask = (row_lv == cross_level) & ~mask
+        mask = mask | extra_mask
+
     peers = empleados_df[mask].copy()
 
     if peers.empty:
         st.info('No se encontraron pares para este code.')
     else:
-        peers['Nivel'] = peers['new_code'].apply(
-            lambda c: '➡ Siguiente' if code_level_key(c) == nxt_level else 'Actual'
-        )
+        def _nivel(c):
+            k = code_level_key(c)
+            if k is not None and k == cur_level:
+                return 'Actual'
+            if nxt_level and k == nxt_level:
+                return '➡ Siguiente'
+            return cross_label_nivel or 'Actual'
+        peers['Nivel'] = peers['new_code'].apply(_nivel)
+        # Orden por level numérico y después code
+        peers['_lv'] = peers.apply(lambda r: level_number(r['new_code'], r.get('seniority')), axis=1)
+        peers = peers.sort_values(['_lv', 'new_code', 'name'], na_position='last')
         # Recompute bands live from Bandas Div instead of the snapshot stored
         # per-row in Sueldos, so peers match the live bands used for the proposal.
         live_bandas = peers['new_code'].apply(lambda c: get_banda_for_code(c, bandas_df))
@@ -1292,9 +1335,9 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
         peers['bruto_total'] = peers.apply(lambda r: peer_bruto_total(r, fx_blue), axis=1)
         fmt_ars = lambda v: f'${v:,.0f}' if v and pd.notna(v) else '—'
 
-        peers_cols = ['name', 'Nivel', 'code', 'seniority', 'bill', 'payroll', 'bruto_total',
+        peers_cols = ['name', 'Nivel', 'department', 'code', 'seniority', 'bill', 'payroll', 'bruto_total',
                       'costo_usd_h', 'gap_banda', 'banda_min', 'banda_med', 'banda_max']
-        peers_col_names = ['Nombre', 'Nivel', 'Code', 'Seniority', 'Bill', 'PayRoll', 'Bruto Total ARS',
+        peers_col_names = ['Nombre', 'Nivel', 'Departamento', 'Code', 'Seniority', 'Bill', 'PayRoll', 'Bruto Total ARS',
                            'Costo USD/H', 'GAP Banda', 'Banda Mín', 'Banda Med', 'Banda Máx']
         fmt_map = {
             'Bill': fmt_usd, 'PayRoll': fmt_usd, 'Bruto Total ARS': fmt_ars, 'Costo USD/H': fmt_usd,
@@ -1306,7 +1349,9 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
 
         def _highlight_self(row):
             color = '#fff9c4' if row['Nombre'] == emp_name else (
-                '#f3e5f5' if row['Nivel'] == '➡ Siguiente' else ''
+                '#f3e5f5' if row['Nivel'] == '➡ Siguiente' else (
+                    '#e3f2fd' if cross_label_nivel and row['Nivel'] == cross_label_nivel else ''
+                )
             )
             return [f'background-color: {color}'] * len(row)
 
@@ -1327,7 +1372,8 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
         )
         st.dataframe(styled, use_container_width=True, hide_index=True)
 
-        avg_rows = peers_averages(peers, ['Actual', '➡ Siguiente'])
+        avg_rows = peers_averages(
+            peers, ['Actual', '➡ Siguiente'] + ([cross_label_nivel] if cross_label_nivel else []))
         if avg_rows:
             fmt_avg_usd = lambda v: fmt_usd(v) if v and pd.notna(v) else '—'
             st.markdown('**Promedios de pares**')
