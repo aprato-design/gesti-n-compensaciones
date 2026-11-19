@@ -682,8 +682,27 @@ body.metrics-mode .metrics-panel{display:block;background:var(--ms-white);paddin
 .lvl-gap-label.active{background:var(--ms-dark);color:#fff;}
 .lvl-gap-track{flex:1;position:relative;height:24px;}
 .lvl-gap-track::before{content:'';position:absolute;left:50%;top:-6px;bottom:-6px;border-left:1px dashed var(--ms-grey-400);}
-.lvl-gap-seg{position:absolute;top:0;height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:var(--font-mono);box-shadow:inset 0 0 0 1px #fff;transition:filter .1s;cursor:default;overflow:hidden;white-space:nowrap;}
-.lvl-gap-seg:hover{filter:brightness(.9);}
+.lvl-gap-seg{position:absolute;top:0;height:100%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;font-family:var(--font-mono);letter-spacing:-.02em;box-shadow:inset 0 0 0 1px #fff;transition:filter .1s;cursor:pointer;overflow:hidden;white-space:nowrap;}
+.lvl-gap-seg:hover,.lvl-gap-seg.hl{filter:brightness(.9);}
+.lvl-gap-seg .lvl-gap-pct.out{visibility:hidden;}
+/* % de segmentos demasiado angostos: se muestra debajo de la barra, con una marquita */
+.lvl-gap-row.has-out{padding-bottom:20px;}
+.lvl-gap-outlbl{position:absolute;top:calc(100% + 3px);font-size:9px;font-weight:700;font-family:var(--font-mono);letter-spacing:-.02em;color:var(--tbl-text2);white-space:nowrap;cursor:pointer;line-height:1;padding-top:4px;}
+.lvl-gap-outlbl::before{content:'';position:absolute;top:0;left:var(--tick,50%);width:1px;height:3px;background:var(--ms-grey-400);}
+.lvl-gap-outlbl .sw{display:inline-block;width:6px;height:6px;border-radius:2px;margin-right:3px;vertical-align:0;}
+.lvl-gap-outlbl:hover{color:var(--ms-dark);}
+.lvl-gap-tip{position:fixed;pointer-events:none;background:var(--ms-dark);color:#fff;font-size:11px;line-height:1.5;padding:9px 11px;border-radius:8px;box-shadow:0 6px 16px rgba(0,0,0,.2);z-index:1000;opacity:0;transition:opacity .08s;max-width:340px;}
+.lvl-gap-tip.show{opacity:1;}
+.lvl-gap-tip-title{font-weight:700;margin-bottom:6px;white-space:nowrap;}
+.lvl-gap-tip-row{display:flex;justify-content:space-between;gap:14px;white-space:nowrap;}
+.lvl-gap-tip-name{color:#D8DEE4;overflow:hidden;text-overflow:ellipsis;}
+.lvl-gap-tip-ag{font-weight:700;font-size:10px;flex-shrink:0;}
+.lvl-gap-tip-ag.c{color:#8FC1FF;}.lvl-gap-tip-ag.e{color:#6FE3B0;}.lvl-gap-tip-ag.p{color:#FFC59E;}
+.ag-legend-item{display:inline-flex;align-items:center;gap:2px;}
+.ag-var{font-family:var(--font-mono);font-size:10.5px;padding:2px 6px;border-radius:var(--radius-pill);cursor:help;border-bottom:1px dotted currentColor;}
+.ag-var:hover{background:var(--ms-grey-100);}
+.ag-var-note{font-size:10px;color:var(--tbl-text3);align-self:center;margin-left:4px;}
+.lvl-gap-tip-foot{margin-top:6px;font-size:10px;color:#AEB7C0;white-space:nowrap;}
 .lvl-gap-seg.end-l{border-radius:4px 0 0 4px;}
 .lvl-gap-seg.end-r{border-radius:0 4px 4px 0;}
 .lvl-gap-seg.ink-dark{color:var(--ms-dark);}
@@ -974,23 +993,6 @@ body.viewer .note-input{pointer-events:none;background-color:var(--ms-grey-50)!i
     <div class="metric-card-sub" id="metrics-salaryreview-sub"></div>
     <div id="metrics-salaryreview-body"></div>
   </div>
-  <div class="metric-card metric-card-wide">
-    <h3>Nivel (Level) vs GAP Banda</h3>
-    <div class="metric-card-sub">No depende del filtro de Level de arriba — el objetivo es comparar todos los levels entre sí. Clickeá uno o más levels a la izquierda para ver su evolución de % Saludable en el tiempo.</div>
-    <div class="lvl-gap-legend" id="lvl-gap-legend"></div>
-    <div id="metrics-levelgap-body"></div>
-    <div class="viz-chart-wrap" id="level-trend-wrap" hidden style="margin-top:18px">
-      <div class="metric-card-sub" style="margin-bottom:10px">Evolución mensual de % Saludable ±5% — todos los meses, ignora el filtro de Período de arriba</div>
-      <svg id="level-trend-chart-svg" viewBox="0 0 1000 340" preserveAspectRatio="xMidYMid meet"></svg>
-      <div class="viz-tooltip" id="level-trend-tooltip"></div>
-      <div class="viz-legend" id="level-trend-legend"></div>
-    </div>
-  </div>
-  <div class="metric-card metric-card-wide">
-    <h3>Casos de Performance Abiertos por Departamento</h3>
-    <div class="metric-card-sub" id="metrics-perfcases-sub"></div>
-    <div class="metric-body" id="metrics-perfcases-body"></div>
-  </div>
   <div class="metric-card metric-card-wide metric-card-trend">
     <h3>Evolución de Costo Promedio USD/H</h3>
     <div class="metric-card-sub">Respeta los filtros de Departamento/Level de arriba — todos los meses, ignora el Período. Elegí ver por Departamento o por Level y seleccioná uno o más para comparar; sin selección, muestra el promedio general.</div>
@@ -1003,6 +1005,12 @@ body.viewer .note-input{pointer-events:none;background-color:var(--ms-grey-50)!i
       <div class="viz-tooltip" id="avgcosto-tooltip"></div>
     </div>
     <div class="viz-legend" id="avgcosto-legend"></div>
+    <div class="metric-trend-wrap" style="margin-top:18px">
+      <table class="metric-trend-table">
+        <thead><tr id="avgcosto-table-head"></tr></thead>
+        <tbody id="avgcosto-table-body"></tbody>
+      </table>
+    </div>
   </div>
   <div class="metric-card metric-card-wide metric-card-trend">
     <h3>Costo Total por Cuenta / Proyecto (x168hs)</h3>
@@ -1053,6 +1061,24 @@ body.viewer .note-input{pointer-events:none;background-color:var(--ms-grey-50)!i
         <tbody id="metrics-trend-body"></tbody>
       </table>
     </div>
+  </div>
+  <div class="metric-card metric-card-wide">
+    <h3>Nivel (Level) vs GAP Banda</h3>
+    <div class="metric-card-sub">No depende del filtro de Level de arriba — el objetivo es comparar todos los levels entre sí. Clickeá uno o más levels a la izquierda para ver su evolución de % Saludable en el tiempo.</div>
+    <div class="lvl-gap-legend" id="lvl-gap-legend"></div>
+    <div id="metrics-levelgap-body"></div>
+    <div class="lvl-gap-tip" id="lvl-gap-tip"></div>
+    <div class="viz-chart-wrap" id="level-trend-wrap" hidden style="margin-top:18px">
+      <div class="metric-card-sub" style="margin-bottom:10px">Evolución mensual de % Saludable ±5% — todos los meses, ignora el filtro de Período de arriba</div>
+      <svg id="level-trend-chart-svg" viewBox="0 0 1000 340" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="viz-tooltip" id="level-trend-tooltip"></div>
+      <div class="viz-legend" id="level-trend-legend"></div>
+    </div>
+  </div>
+  <div class="metric-card metric-card-wide">
+    <h3>Casos de Performance Abiertos por Departamento</h3>
+    <div class="metric-card-sub" id="metrics-perfcases-sub"></div>
+    <div class="metric-body" id="metrics-perfcases-body"></div>
   </div>
 </div>
 
@@ -1627,18 +1653,26 @@ function renderLineChart(cfg){
   const VB_W=1000,VB_H=340;
   const MG={top:24,right:16,bottom:40,left:60};
   const plotW=VB_W-MG.left-MG.right, plotH=VB_H-MG.top-MG.bottom;
-  let maxV=0;
-  data.forEach(d=>series.forEach(s=>{ maxV=Math.max(maxV,d.values[s.key]||0); }));
-  const yMax=niceMax(maxV*1.15);
+  let maxV=0, minV=Infinity;
+  data.forEach(d=>series.forEach(s=>{ const v=d.values[s.key]||0; maxV=Math.max(maxV,v); if(v>0)minV=Math.min(minV,v); }));
+  // cfg.zoom: el eje Y arranca cerca del mínimo de los datos (no en 0), para que las
+  // variaciones chicas mes a mes se vean. Paso "lindo" (1/2/5×10^n) con ~5 líneas de grilla.
+  let yMin=0, yMax=niceMax(maxV*1.15), steps=4;
+  if(cfg.zoom&&isFinite(minV)&&maxV>0){
+    const range=Math.max(maxV-minV,maxV*0.02);
+    const step=niceMax(range*1.4/5); // niceMax redondea hacia arriba a 1/2/5×10^n
+    yMin=Math.max(0,Math.floor((minV-range*0.2)/step)*step);
+    yMax=Math.ceil((maxV+range*0.25)/step)*step;
+    steps=Math.max(2,Math.round((yMax-yMin)/step));
+  }
   const n=data.length;
   const xFor=i=>n<=1?MG.left+plotW/2:MG.left+i*(plotW/(n-1));
-  const yFor=v=>MG.top+plotH-(yMax?v/yMax:0)*plotH;
+  const yFor=v=>MG.top+plotH-((yMax-yMin)?(v-yMin)/(yMax-yMin):0)*plotH;
   const baseline=MG.top+plotH;
 
   const parts=[];
-  const steps=4;
   for(let i=0;i<=steps;i++){
-    const v=yMax*i/steps,y=yFor(v);
+    const v=yMin+(yMax-yMin)*i/steps,y=yFor(v);
     parts.push(`<line class="viz-gridline" x1="${MG.left}" y1="${y}" x2="${VB_W-MG.right}" y2="${y}"/>`);
     parts.push(`<text class="viz-axis-label" x="${MG.left-8}" y="${y+3}" text-anchor="end">${yFmt(v)}</text>`);
   }
@@ -1651,6 +1685,10 @@ function renderLineChart(cfg){
     const path=pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
     parts.push(`<path fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" d="${path}"/>`);
     pts.forEach(p=>parts.push(`<circle class="viz-line-dot" cx="${p[0]}" cy="${p[1]}" r="4" fill="${s.color}" stroke="var(--bg-1)" stroke-width="2"/>`));
+    // cfg.pointLabels con una sola serie: valor encima de cada punto (el último ya lo tiene al costado).
+    if(cfg.pointLabels&&series.length===1){
+      pts.slice(0,-1).forEach((p,i)=>parts.push(`<text class="viz-total-label" x="${p[0]}" y="${Math.max(MG.top+8,p[1]-10)}" text-anchor="middle" style="fill:${s.color}">${yFmt(data[i].values[s.key]||0)}</text>`));
+    }
     const last=pts[pts.length-1];
     const lastVal=data[data.length-1].values[s.key]||0;
     const anchor=last[0]>VB_W-140?'end':'start';
@@ -1777,10 +1815,127 @@ let selectedAgreementChartItems=new Set();
 function renderAgreementSelector(){
   const el=document.getElementById('agreement-cost-legend');
   if(!el)return;
+  const refM=agreementVarRefMonth();
   el.innerHTML=AGREEMENT_COST_TYPES.map(t=>{
     const active=selectedAgreementChartItems.has(t);
-    return `<button type="button" class="viz-legend-btn${active?' active':''}" onclick="toggleAgreementChartItem('${t}')"><span class="viz-legend-swatch" style="background:${AGREEMENT_CHART_COLORS[t]}"></span>${t}</button>`;
+    return `<span class="ag-legend-item"><button type="button" class="viz-legend-btn${active?' active':''}" onclick="toggleAgreementChartItem('${t}')"><span class="viz-legend-swatch" style="background:${AGREEMENT_CHART_COLORS[t]}"></span>${t}</button>${agVarBadge(refM,t)}</span>`;
+  }).join('')+(refM&&MONTHS.indexOf(refM)>0?`<span class="ag-var-note">Var. ${ML[refM]||refM} vs ${ML[MONTHS[MONTHS.indexOf(refM)-1]]} — pasá el mouse por el % para ver a qué se debe</span>`:'');
+  initAgVarTip();
+}
+
+// ── Variación % por Agreement vs mes anterior, desglosada por causa ──
+// Compara persona por persona (Employee #) el mes m contra el anterior, dentro del agreement
+// y respetando el filtro de Departamento. Cada peso de diferencia cae en UNA causa, así que
+// las causas suman exacto la variación total:
+//   Altas            — está en m y no estaba en el mes anterior
+//   Bajas            — estaba en el mes anterior y ya no está en m
+//   Cambio de agreement/depto — sigue, pero entró/salió de este agreement (o del depto filtrado)
+//   Recategorización — mismo agreement, cambió Code (Level) o Level
+//   Cambio proactivo — mismo agreement y code, y "Ultimo Cambio Proactivo" = m
+//                      (ojo: esa columna hoy también registra pautas generales)
+//   Tipo de cambio / otros — resto de las diferencias de costo (FX de ARS/COP, correcciones)
+const AG_VAR_CATS=[
+  {k:'alta',lbl:'Altas'},{k:'baja',lbl:'Bajas'},{k:'recat',lbl:'Recategorizaciones'},
+  {k:'proactivo',lbl:'Cambios proactivos'},{k:'mov',lbl:'Cambio de agreement/depto'},{k:'otros',lbl:'Tipo de cambio / otros'},
+];
+const MONTH_ABBR_EN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function monthToUcp(m){ return MONTH_ABBR_EN[monthNum(m)-1]+'-'+m.slice(0,4); }
+function agreementVarRefMonth(){
+  const months=activePeriodMonths().filter(m=>MONTHS.includes(m)).sort();
+  return months.length?months[months.length-1]:MONTHS[MONTHS.length-1];
+}
+const agVarCache=new Map();
+function agreementVarBreakdown(m,ag){
+  const ck=m+'|'+ag+'|'+(metricsDept||'');
+  if(agVarCache.has(ck))return agVarCache.get(ck);
+  const idx=MONTHS.indexOf(m);
+  if(idx<1){ agVarCache.set(ck,null); return null; }
+  const pm=MONTHS[idx-1];
+  const keyOf=d=>d['Employee #']||d['Last name, First name'];
+  const cost=d=>{ const c=parseFloat(d['Costo USD/H']); return isNaN(c)?0:c*HORAS_MES; };
+  const inScope=d=>d.Agreement===ag&&(!metricsDept||d.Department===metricsDept);
+  const curAll=new Map(), prevAll=new Map();
+  ALL_DATA.forEach(d=>{ if(d.Month===m)curAll.set(keyOf(d),d); else if(d.Month===pm)prevAll.set(keyOf(d),d); });
+  const cats={}; AG_VAR_CATS.forEach(c=>cats[c.k]={delta:0,people:[]});
+  // Diferencias < $1/mes (redondeos) suman en "otros" pero no se listan como persona.
+  const add=(k,d,delta,extra)=>{
+    if(Math.abs(delta)<1&&(k==='otros'||k==='proactivo')){ cats.otros.delta+=delta; return; }
+    cats[k].delta+=delta; cats[k].people.push({name:d['Last name, First name']||'—',delta,extra});
+  };
+  let curTot=0, prevTot=0;
+  curAll.forEach((d,key)=>{
+    if(!inScope(d))return;
+    curTot+=cost(d);
+    const p=prevAll.get(key);
+    if(!p){ add('alta',d,cost(d)); return; }
+    if(!inScope(p)){ add('mov',d,cost(d),p.Agreement!==ag?`desde ${p.Agreement||'—'}`:`desde ${String(p.Department||'—').replace(/^MS - /,'')}`); return; }
+    const delta=cost(d)-cost(p);
+    if(String(d['Code (Level)']||'')!==String(p['Code (Level)']||'')||String(d.Seniority||'')!==String(p.Seniority||''))
+      add('recat',d,delta,`${p['Code (Level)']||'—'} → ${d['Code (Level)']||'—'}`);
+    else if(String(d['Ultimo Cambio Proactivo']||'')===monthToUcp(m)) add('proactivo',d,delta);
+    else add('otros',d,delta);
+  });
+  prevAll.forEach((p,key)=>{
+    if(!inScope(p))return;
+    prevTot+=cost(p);
+    const d=curAll.get(key);
+    if(!d){ add('baja',p,-cost(p)); return; }
+    if(!inScope(d))add('mov',p,-cost(p),d.Agreement!==ag?`pasó a ${d.Agreement||'—'}`:`pasó a ${String(d.Department||'—').replace(/^MS - /,'')}`);
+  });
+  const res={m,pm,ag,curTot,prevTot,pct:prevTot?(curTot-prevTot)/prevTot*100:null,cats};
+  agVarCache.set(ck,res);
+  return res;
+}
+function agVarBadge(m,ag){
+  const r=m?agreementVarBreakdown(m,ag):null;
+  if(!r||r.pct===null)return '';
+  const cls=r.pct>0.05?'metric-var-up':(r.pct<-0.05?'metric-var-down':'metric-var-flat');
+  return `<span class="ag-var ${cls}" data-m="${m}" data-ag="${ag}">${r.pct>0?'+':''}${r.pct.toFixed(1)}%</span>`;
+}
+function fmtUsdSigned(n){ return (n>=0?'+':'−')+fmtUsd(Math.abs(n)); }
+function initAgVarTip(){
+  if(document.getElementById('ag-var-tip'))return;
+  const tip=document.createElement('div');
+  tip.id='ag-var-tip'; tip.className='lvl-gap-tip';
+  document.body.appendChild(tip);
+  const card=document.getElementById('agreement-cost-legend').closest('.metric-card');
+  card.addEventListener('mouseover',e=>{
+    const t=e.target.closest('.ag-var'); if(!t)return;
+    const r=agreementVarBreakdown(t.dataset.m,t.dataset.ag); if(!r)return;
+    tip.innerHTML=agVarTipHtml(r);
+    tip.classList.add('show');
+    placeAgVarTip(e);
+  });
+  card.addEventListener('mousemove',e=>{ if(e.target.closest('.ag-var'))placeAgVarTip(e); });
+  card.addEventListener('mouseout',e=>{
+    const t=e.target.closest('.ag-var'); if(!t)return;
+    if(e.relatedTarget&&t.contains(e.relatedTarget))return;
+    tip.classList.remove('show');
+  });
+}
+function placeAgVarTip(e){
+  const tip=document.getElementById('ag-var-tip');
+  const pad=12,w=tip.offsetWidth,h=tip.offsetHeight;
+  let x=e.clientX-w/2, y=e.clientY-h-pad;
+  if(y<8)y=e.clientY+pad+8;
+  x=Math.max(8,Math.min(x,window.innerWidth-w-8));
+  y=Math.min(y,window.innerHeight-h-8);
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+const AG_VAR_TIP_NAMES=4;
+function agVarTipHtml(r){
+  const diff=r.curTot-r.prevTot;
+  const rows=AG_VAR_CATS.filter(c=>r.cats[c.k].people.length).map(c=>{
+    const cat=r.cats[c.k];
+    const ppl=[...cat.people].sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta));
+    const names=ppl.slice(0,AG_VAR_TIP_NAMES).map(p=>`<div class="lvl-gap-tip-row" style="padding-left:12px;font-size:10.5px"><span class="lvl-gap-tip-name">${escAttr(p.name)}${p.extra?` <span style="opacity:.6">(${escAttr(p.extra)})</span>`:''}</span><span style="font-family:var(--font-mono)">${fmtUsdSigned(p.delta)}</span></div>`).join('');
+    const more=ppl.length>AG_VAR_TIP_NAMES?`<div class="lvl-gap-tip-row" style="padding-left:12px;font-size:10px;color:#AEB7C0">y ${ppl.length-AG_VAR_TIP_NAMES} más</div>`:'';
+    const share=diff?` <span style="opacity:.6">${r.prevTot?((cat.delta/r.prevTot*100)>0?'+':'')+(cat.delta/r.prevTot*100).toFixed(1)+'%':''}</span>`:'';
+    return `<div class="lvl-gap-tip-row" style="margin-top:6px;font-weight:700"><span>${c.lbl} (${ppl.length})</span><span style="font-family:var(--font-mono)">${fmtUsdSigned(cat.delta)}${share}</span></div>${names}${more}`;
   }).join('');
+  return `<div class="lvl-gap-tip-title">${r.ag} · ${ML[r.m]||r.m} vs ${ML[r.pm]||r.pm}: ${r.pct>0?'+':''}${r.pct.toFixed(1)}% (${fmtUsdSigned(diff)})</div>
+    ${rows||'<div style="color:#AEB7C0">Sin cambios de costo</div>'}
+    <div class="lvl-gap-tip-foot">Montos mensuales (Costo USD/H × 168)${metricsDept?' · '+escAttr(metricsDept):''}</div>`;
 }
 window.toggleAgreementChartItem=function(t){
   if(selectedAgreementChartItems.has(t))selectedAgreementChartItems.delete(t);else selectedAgreementChartItems.add(t);
@@ -1872,12 +2027,13 @@ function renderAgreementCostTrend(){
   const tbody=document.getElementById('metrics-agreement-cost-body');
   const sub=document.getElementById('metrics-agreement-cost-sub');
   sub.textContent=metricsDept||'Todos los departamentos';
-  if(!MONTHS.length){ tbody.innerHTML='<tr><td colspan="5" class="metric-empty" style="font-family:var(--font-sans)">Sin datos</td></tr>'; return; }
+  agVarCache.clear(); // ALL_DATA puede haberse recargado; se recalcula en cada render
+  if(!MONTHS.length){ tbody.innerHTML='<tr><td colspan="5"class="metric-empty" style="font-family:var(--font-sans)">Sin datos</td></tr>'; return; }
   const lastMonth=MONTHS[MONTHS.length-1];
   tbody.innerHTML=MONTHS.map(m=>{
     const monthRows=ALL_DATA.filter(d=>d.Month===m && (!metricsDept||d.Department===metricsDept));
     const liveBadge=m===lastMonth?'<span class="metric-live-badge">En curso</span>':'';
-    const cells=AGREEMENT_COST_TYPES.map(ag=>fmtUsd(costoTotalDelMes(monthRows.filter(d=>d.Agreement===ag)))).map(v=>`<td>${v}</td>`).join('');
+    const cells=AGREEMENT_COST_TYPES.map(ag=>`<td>${fmtUsd(costoTotalDelMes(monthRows.filter(d=>d.Agreement===ag)))} ${agVarBadge(m,ag)}</td>`).join('');
     return `<tr><td>${ML[m]||m}${liveBadge}</td>${cells}<td style="font-weight:700">${fmtUsd(costoTotalDelMes(monthRows))}</td></tr>`;
   }).join('');
 }
@@ -1984,15 +2140,16 @@ function renderLevelGap(){
     cur=50+s.eb*S/2;
     LVL_GAP_ABOVE.forEach(k=>{ const w=s.pct(k)*S; seg(k,cur,w); cur+=w; });
     const minX=Math.min(...segs.map(g=>g.x)), maxX=Math.max(...segs.map(g=>g.x+g.w));
+    const lvlEsc=String(s.lvl).replace(/'/g,"\\'");
     const segHtml=segs.map(g=>{
       const c=LVL_GAP_COLORS[g.k], p=s.pct(g.k);
       const cls=['lvl-gap-seg','ink-'+c.ink];
       if(Math.abs(g.x-minX)<1e-6)cls.push('end-l');
       if(Math.abs(g.x+g.w-maxX)<1e-6)cls.push('end-r');
-      const txt=g.w>=6?Math.round(p)+'%':'';
-      return `<div class="${cls.join(' ')}" style="left:${g.x.toFixed(2)}%;width:${g.w.toFixed(2)}%;background:${c.bg}" title="Level ${s.lvl} · ${MSEL_LABELS.gap[g.k]||g.k}: ${s.counts[g.k]} persona${s.counts[g.k]===1?'':'s'} (${p.toFixed(1)}%)">${txt}</div>`;
+      // Siempre se escribe el %; layoutLevelGapLabels() lo saca debajo de la barra si no entra.
+      const txt=p>0&&p<1?'<1%':Math.round(p)+'%';
+      return `<div class="${cls.join(' ')}" data-lvl="${escAttr(s.lvl)}" data-k="${escAttr(g.k)}" style="left:${g.x.toFixed(2)}%;width:${g.w.toFixed(2)}%;background:${c.bg}" onclick="showLevelGapPeople(this,'${lvlEsc}','${g.k}')"><span class="lvl-gap-pct">${txt}</span></div>`;
     }).join('');
-    const lvlEsc=String(s.lvl).replace(/'/g,"\\'");
     const active=selectedLevelChartItems.has(s.lvl);
     return `<div class="lvl-gap-row">
       <div class="lvl-gap-label${active?' active':''}" onclick="toggleLevelChartItem('${lvlEsc}')" title="Clickear para comparar la evolución de este level en el tiempo">${s.lvl}</div>
@@ -2007,7 +2164,135 @@ function renderLevelGap(){
       <div class="lvl-gap-health">% Saludable<small>±5% de banda</small></div>
       <div class="lvl-gap-n">Personas</div>
     </div>${rowsHtml}`
-    +(totalSin?`<div class="lvl-gap-foot">${totalSin} persona${totalSin===1?'':'s'} sin dato de GAP Banda (no se dibujan, pero cuentan en el % Saludable).</div>`:'');
+    +(totalSin?`<div class="lvl-gap-foot">${totalSin} persona${totalSin===1?'':'s'} sin dato de GAP Banda (no se dibujan, pero cuentan en el % Saludable).</div>`:'')
+    +`<div class="lvl-gap-foot">Pasá el mouse por un color para ver quiénes son; clickealo para abrir el listado completo.</div>`;
+  initLevelGapInteractions(body);
+  layoutLevelGapLabels(body);
+}
+
+function escAttr(v){
+  return String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+// Personas de un level + categoría GAP con la misma base que la card (mes/período + depto, sin
+// filtro de Level). Si el Período abarca varios meses, una persona aparece una vez por mes:
+// en el tooltip se agrupa por nombre y se indica en cuántos meses aparece.
+function levelGapRows(lvl,k){
+  return metricsFilteredDataBase().filter(d=>String(d.Seniority)===lvl&&d['% GAP Banda']===k);
+}
+window.showLevelGapPeople=function(el,lvl,k){
+  hideLevelGapTip();
+  openPeopleList(`Level ${lvl} · ${MSEL_LABELS.gap[k]||k} (Nivel vs GAP Banda)`,()=>levelGapRows(lvl,k),el);
+};
+
+// Los % que no entran dentro de su segmento se reubican debajo de la barra, centrados en el
+// segmento (con una marquita), corriéndolos lo justo para que no se pisen entre sí.
+// Se mide en el DOM porque depende del ancho real de la card; se re-ejecuta al cambiar de
+// tamaño (ResizeObserver cubre también el caso de la pestaña oculta → visible).
+function layoutLevelGapLabels(body){
+  body.querySelectorAll('.lvl-gap-row').forEach(row=>{
+    const track=row.querySelector('.lvl-gap-track');
+    if(!track)return;
+    track.querySelectorAll('.lvl-gap-outlbl').forEach(n=>n.remove());
+    row.classList.remove('has-out');
+    const tw=track.clientWidth;
+    if(!tw)return;
+    const outs=[];
+    track.querySelectorAll('.lvl-gap-seg').forEach(seg=>{
+      const span=seg.querySelector('.lvl-gap-pct');
+      span.classList.remove('out');
+      if(span.scrollWidth+4<=seg.clientWidth)return;
+      span.classList.add('out');
+      const lbl=document.createElement('div');
+      lbl.className='lvl-gap-outlbl';
+      lbl.dataset.lvl=seg.dataset.lvl; lbl.dataset.k=seg.dataset.k;
+      lbl.innerHTML=`<span class="sw" style="background:${seg.style.background}"></span>${span.textContent}`;
+      lbl.onclick=()=>seg.click();
+      track.appendChild(lbl);
+      outs.push({lbl,seg,center:seg.offsetLeft+seg.offsetWidth/2,w:lbl.offsetWidth});
+    });
+    if(!outs.length)return;
+    row.classList.add('has-out');
+    outs.sort((a,b)=>a.center-b.center);
+    const GAP=4;
+    // Pasada izquierda→derecha empujando a la derecha, luego derecha→izquierda para no salir del track.
+    let prevEnd=-Infinity;
+    outs.forEach(o=>{ o.x=Math.max(o.center-o.w/2,prevEnd+GAP,0); prevEnd=o.x+o.w; });
+    let nextStart=tw;
+    for(let i=outs.length-1;i>=0;i--){ const o=outs[i]; o.x=Math.min(o.x,nextStart-GAP-o.w); nextStart=o.x; }
+    outs.forEach(o=>{
+      o.lbl.style.left=o.x+'px';
+      o.lbl.style.setProperty('--tick',Math.max(0,Math.min(o.w,o.center-o.x))+'px');
+    });
+  });
+}
+
+let lvlGapResizeObs=null;
+function initLevelGapInteractions(body){
+  if(body.dataset.lvlGapInit)return;
+  body.dataset.lvlGapInit='1';
+  // El tooltip va directo en <body>: position:fixed se rompe si algún contenedor tiene transform.
+  const tip=document.getElementById('lvl-gap-tip');
+  if(tip&&tip.parentElement!==document.body)document.body.appendChild(tip);
+  if(window.ResizeObserver){
+    let lastW=0;
+    lvlGapResizeObs=new ResizeObserver(()=>{
+      if(body.clientWidth===lastW)return;
+      lastW=body.clientWidth;
+      layoutLevelGapLabels(body);
+    });
+    lvlGapResizeObs.observe(body);
+  }
+  const targetOf=e=>e.target.closest('.lvl-gap-seg,.lvl-gap-outlbl');
+  body.addEventListener('mouseover',e=>{
+    const t=targetOf(e); if(!t)return;
+    showLevelGapTip(t.dataset.lvl,t.dataset.k,e);
+  });
+  body.addEventListener('mousemove',e=>{ if(targetOf(e))positionLevelGapTip(e); });
+  body.addEventListener('mouseout',e=>{
+    const t=targetOf(e); if(!t)return;
+    if(e.relatedTarget&&t.contains(e.relatedTarget))return;
+    hideLevelGapTip();
+  });
+}
+const LVL_GAP_TIP_MAX=18;
+function showLevelGapTip(lvl,k,e){
+  const tip=document.getElementById('lvl-gap-tip');
+  if(!tip)return;
+  const rows=levelGapRows(lvl,k);
+  const byName=new Map();
+  rows.forEach(d=>{
+    const name=String(d['Last name, First name']||'—');
+    const cur=byName.get(name);
+    if(cur)cur.n++; else byName.set(name,{name,ag:d.Agreement||'',n:1});
+  });
+  const people=[...byName.values()].sort((a,b)=>a.name.localeCompare(b.name,'es'));
+  const total=metricsFilteredDataBase().filter(d=>String(d.Seniority)===lvl).length;
+  const pct=total?rows.length/total*100:0;
+  const multiMonth=people.some(p=>p.n>1);
+  const agCls=a=>a==='Contractor'?'c':a==='Empleado'?'e':'p';
+  const list=people.slice(0,LVL_GAP_TIP_MAX).map(p=>`<div class="lvl-gap-tip-row">
+      <span class="lvl-gap-tip-name">${escAttr(p.name)}${multiMonth&&p.n>1?` <span style="opacity:.6">×${p.n}</span>`:''}</span>
+      <span class="lvl-gap-tip-ag ${agCls(p.ag)}">${escAttr(p.ag||'—')}</span></div>`).join('');
+  const more=people.length>LVL_GAP_TIP_MAX?`y ${people.length-LVL_GAP_TIP_MAX} más · `:'';
+  tip.innerHTML=`<div class="lvl-gap-tip-title"><span class="viz-tooltip-swatch" style="display:inline-block;margin-right:6px;background:${LVL_GAP_COLORS[k].bg}"></span>Level ${escAttr(lvl)} · ${escAttr(MSEL_LABELS.gap[k]||k)} — ${people.length} persona${people.length===1?'':'s'} (${pct.toFixed(1)}%)</div>
+    ${list}
+    <div class="lvl-gap-tip-foot">${more}Click para ver el listado completo${multiMonth?' · ×N = meses del período':''}</div>`;
+  tip.classList.add('show');
+  positionLevelGapTip(e);
+}
+function positionLevelGapTip(e){
+  const tip=document.getElementById('lvl-gap-tip');
+  if(!tip||!tip.classList.contains('show'))return;
+  const pad=12, w=tip.offsetWidth, h=tip.offsetHeight;
+  let x=e.clientX-w/2, y=e.clientY-h-pad;
+  if(y<8)y=e.clientY+pad+8;                       // sin lugar arriba → abajo del cursor
+  x=Math.max(8,Math.min(x,window.innerWidth-w-8));
+  y=Math.min(y,window.innerHeight-h-8);
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+function hideLevelGapTip(){
+  const tip=document.getElementById('lvl-gap-tip');
+  if(tip)tip.classList.remove('show');
 }
 
 // Cruce de un level específico contra el tiempo — se activa clickeando el nombre del level a
@@ -2334,7 +2619,33 @@ function renderAvgCostoChart(){
   renderAvgCostoDeptScope();
   renderAvgCostoSelector();
   renderAvgCostoCodeSelector();
-  renderLineChart({svgId:'avgcosto-chart-svg',legendId:'avgcosto-legend',tooltipId:'avgcosto-tooltip',data:avgCostoChartData(),series:avgCostoChartSeries(),yFmt:v=>'$'+v.toFixed(1)});
+  const data=avgCostoChartData(), series=avgCostoChartSeries();
+  renderLineChart({svgId:'avgcosto-chart-svg',legendId:'avgcosto-legend',tooltipId:'avgcosto-tooltip',data,series,yFmt:v=>'$'+v.toFixed(1),zoom:true,pointLabels:true});
+  renderAvgCostoTable(data,series);
+}
+// Tabla mensual debajo del gráfico: costo promedio de cada serie + variación % vs mes anterior.
+function renderAvgCostoTable(data,series){
+  const head=document.getElementById('avgcosto-table-head');
+  const body=document.getElementById('avgcosto-table-body');
+  if(!head||!body)return;
+  head.innerHTML='<th>Mes</th>'+series.map(s=>`<th><span class="viz-legend-swatch" style="display:inline-block;margin-right:6px;background:${s.color}"></span>${s.label}</th><th>Var. %</th>`).join('');
+  if(!data.length){ body.innerHTML=`<tr><td colspan="${1+series.length*2}" class="metric-empty" style="font-family:var(--font-sans)">Sin datos</td></tr>`; return; }
+  const lastMonth=MONTHS[MONTHS.length-1];
+  body.innerHTML=data.map((d,i)=>{
+    const prev=i?data[i-1]:null;
+    const cells=series.map(s=>{
+      const v=d.values[s.key]||0, pv=prev?(prev.values[s.key]||0):0;
+      return `<td>${v?'$'+v.toFixed(2):'<span style="color:var(--tbl-text3)">—</span>'}</td><td>${varPctHtml(v,pv)}</td>`;
+    }).join('');
+    const live=d.month===lastMonth?'<span class="metric-live-badge">En curso</span>':'';
+    return `<tr><td>${d.label}${live}</td>${cells}</tr>`;
+  }).join('');
+}
+function varPctHtml(cur,prev){
+  if(!prev||!cur)return '<span class="metric-var-na">—</span>';
+  const p=(cur-prev)/prev*100;
+  const cls=p>0.05?'metric-var-up':(p<-0.05?'metric-var-down':'metric-var-flat');
+  return `<span class="${cls}">${p>0?'+':''}${p.toFixed(1)}%</span>`;
 }
 
 // Panel compartido "quiénes son" — CUALQUIER conteo de personas en Métricas (el total del
@@ -2398,9 +2709,10 @@ function renderPeopleList(defaultData){
   if(!rows.length){ panel.innerHTML=titleHtml+'<div class="metric-empty">Nadie cumple este criterio</div>'; return; }
   const sorted=[...rows].sort((a,b)=>String(a['Last name, First name']||'').localeCompare(String(b['Last name, First name']||''),'es'));
   panel.innerHTML=titleHtml+`<div class="metric-trend-wrap people-list-wrap"><table class="metric-trend-table">
-    <thead><tr><th>Nombre</th><th>Level</th><th>Costo USD/H</th><th>Fecha Ingreso</th><th>GAP Banda</th><th>Aging LC</th><th>Status LC</th></tr></thead>
+    <thead><tr><th>Nombre</th><th>Agreement</th><th>Level</th><th>Costo USD/H</th><th>Fecha Ingreso</th><th>GAP Banda</th><th>Aging LC</th><th>Status LC</th></tr></thead>
     <tbody>${sorted.map(d=>`<tr>
       <td style="font-family:var(--font-sans);font-weight:600;color:var(--ms-dark)">${dash(d['Last name, First name'])}</td>
+      <td>${badge(d.Agreement)||'<span style="color:var(--tbl-text3)">—</span>'}</td>
       <td class="mono">${dash(d.Seniority)}</td>
       <td class="mono">$${num(d['Costo USD/H'])}</td>
       <td class="mono" style="color:var(--tbl-text2);font-size:10.5px">${fmtDate(d['Hire Date'])||'<span style="color:var(--tbl-text3)">—</span>'}</td>
