@@ -20,6 +20,7 @@ HORAS = 168
 COL_MIN_WAGE_10X = 14_235_000  # 10 × salario mínimo Colombia 2026 (COP)
 
 TIPOS_CASO = ['Solo feedback', 'Ajuste compensación', 'Recat sin ajuste', 'Recat con ajuste']
+STATUS_PENDING = 'Pendiente'
 STATUS_OPEN = 'Abierto'
 STATUS_CLOSED = 'Cerrado'
 
@@ -407,7 +408,7 @@ def create_caso(data: dict) -> str:
     caso_id = str(uuid.uuid4())[:8].upper()
     data['id'] = caso_id
     data['created_at'] = datetime.now().strftime('%Y-%m-%d %H:%M')
-    data['status'] = STATUS_OPEN
+    data['status'] = data.get('status') or STATUS_OPEN
     data['closed_at'] = ''
     data['closed_by'] = ''
     row = [str(data.get(col, '')) for col in CASOS_COLS]
@@ -1117,6 +1118,8 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
     heading = '📋 Ver caso' if is_closed else ('✏️ Editar caso' if is_edit else '➕ Nuevo caso')
 
     st.markdown(f'### {heading}')
+    if is_edit and caso.get('status') == STATUS_PENDING:
+        st.info('🕒 Este caso fue levantado por un manager y está pendiente de análisis por Talent Care.')
 
     vars = load_variables()
 
@@ -1544,7 +1547,7 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
                 st.session_state.view = back_view
                 st.rerun()
         with col_pdf_cl:
-            if is_edit:
+            if is_edit and caso.get('status') != STATUS_PENDING:
                 try:
                     caso_cn = {**caso, 'notes': notes}
                     pdf_bytes = generate_caso_pdf(caso_cn, empleados_df, bandas_df)
@@ -1631,6 +1634,84 @@ def show_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame,
             st.caption(f'PDF: {e}')
 
 
+# ── Manager: alta simplificada de caso ─────────────────────────────────────────
+
+def show_manager_new_caso_form(empleados_df: pd.DataFrame, bandas_df: pd.DataFrame, manager_email: str):
+    st.markdown('### ➕ Levantar un caso nuevo')
+    st.caption(
+        'Completá los datos básicos. Talent Care va a analizar el caso y vos vas a poder '
+        'ver el análisis apenas esté listo, en "Mis casos".'
+    )
+
+    emp_options = [''] + sorted(empleados_df['name'].tolist())
+    sel = st.selectbox('Colaborador', emp_options, key='mgr_form_emp_select')
+    if not sel:
+        st.info('Seleccioná un colaborador para continuar.')
+        if st.button('← Volver'):
+            st.session_state.view = 'open_list'
+            st.rerun()
+        return
+
+    emp_rows = empleados_df[empleados_df['name'] == sel]
+    emp = emp_rows.iloc[0] if not emp_rows.empty else None
+    if emp is None:
+        st.error('Empleado no encontrado.')
+        return
+
+    motivo = st.text_area(
+        'Motivo del caso / comentarios', key='mgr_form_notes', height=120,
+        placeholder='Contanos por qué querés levantar este caso (ej: pedido de recategorización, '
+                    'ajuste de compensación, feedback de performance, etc.)',
+    )
+
+    col_save, col_cancel = st.columns([1, 1])
+    with col_save:
+        if st.button('📨 Enviar caso', type='primary', use_container_width=True):
+            if not motivo.strip():
+                st.error('Contanos el motivo del caso antes de enviarlo.')
+            else:
+                live_banda = get_banda_for_code(emp.get('new_code', ''), bandas_df)
+                data = {
+                    'created_by': manager_email,
+                    'employee_email': emp['email'],
+                    'employee_name': emp['name'],
+                    'code': emp.get('code', ''),
+                    'seniority': emp.get('seniority', ''),
+                    'hire_date': emp.get('hire_date', ''),
+                    'xm': emp.get('xm', ''),
+                    'agreement': emp.get('agreement', ''),
+                    'per': emp.get('per', 'Month'),
+                    'currency': emp.get('currency', 'USD'),
+                    'current_bill': float(emp.get('bill', 0) or 0),
+                    'current_payroll': float(emp.get('payroll', 0) or 0),
+                    'current_costo': float(emp.get('costo_usd_h', 0) or 0),
+                    'banda_min': float(live_banda.get('banda_min') or 0),
+                    'banda_med': float(live_banda.get('banda_med') or 0),
+                    'banda_max': float(live_banda.get('banda_max') or 0),
+                    'new_code_empleado': emp.get('new_code', ''),
+                    'target_code': '',
+                    'target_banda_min': '',
+                    'target_banda_med': '',
+                    'target_banda_max': '',
+                    'proposed_bill': float(emp.get('bill', 0) or 0),
+                    'proposed_payroll': float(emp.get('payroll', 0) or 0),
+                    'new_costo': float(emp.get('costo_usd_h', 0) or 0),
+                    'differential': 0,
+                    'tipo': '',
+                    'notes': motivo,
+                    'status': STATUS_PENDING,
+                }
+                with st.spinner('Enviando...'):
+                    create_caso(data)
+                st.success('✅ Caso enviado. Te va a aparecer en "Mis casos" cuando Talent Care lo analice.')
+                st.session_state.view = 'open_list'
+                st.rerun()
+    with col_cancel:
+        if st.button('← Cancelar', use_container_width=True):
+            st.session_state.view = 'open_list'
+            st.rerun()
+
+
 def _save_caso(is_edit, caso, emp_email, emp_name, code, seniority,
                hire_date, xm, agreement, per, currency,
                cur_bill, cur_payroll, cur_costo,
@@ -1683,6 +1764,42 @@ def _save_caso(is_edit, caso, emp_email, emp_name, code, seniority,
 
 
 # ── Cases list components ──────────────────────────────────────────────────────
+
+def show_pending_list(casos_df: pd.DataFrame):
+    role = st.session_state.get('role', 'editor')
+    pending_df = casos_df[casos_df['status'] == STATUS_PENDING] if not casos_df.empty else pd.DataFrame()
+
+    col_h, col_btn = st.columns([4, 1])
+    col_h.markdown(f'#### Casos pendientes de análisis ({len(pending_df)})')
+    if not st.session_state.get('read_only', False):
+        with col_btn:
+            if st.button('➕ Nuevo caso', type='primary', use_container_width=True, key='btn_new_pending'):
+                st.session_state.view = 'new'
+                st.rerun()
+
+    if pending_df.empty:
+        st.info('No hay casos pendientes.')
+        return
+
+    h1, h2, h3, h4 = st.columns([3, 3, 2, 1])
+    h1.markdown('<div class="list-header">Colaborador</div>', unsafe_allow_html=True)
+    h2.markdown('<div class="list-header">Solicitado por</div>', unsafe_allow_html=True)
+    h3.markdown('<div class="list-header">Fecha</div>', unsafe_allow_html=True)
+    h4.markdown('<div class="list-header"></div>', unsafe_allow_html=True)
+
+    for _, row in pending_df.iterrows():
+        c1, c2, c3, c4 = st.columns([3, 3, 2, 1])
+        c1.markdown(f"**{row.get('employee_name', '—')}**")
+        c2.markdown(f"<span style='font-size:0.85rem'>{row.get('created_by', '—')}</span>", unsafe_allow_html=True)
+        c3.markdown(f"<span style='font-size:0.82rem;color:var(--ms-text-light)'>{row.get('created_at', '—')}</span>", unsafe_allow_html=True)
+        with c4:
+            label = 'Ver →' if role == 'manager' else 'Analizar →'
+            if st.button(label, key=f"pending_{row['id']}"):
+                st.session_state.editing_id = row['id']
+                st.session_state.view = 'edit'
+                st.rerun()
+        st.markdown('<hr class="list-sep">', unsafe_allow_html=True)
+
 
 def show_open_list(casos_df: pd.DataFrame):
     open_df = casos_df[casos_df['status'] == STATUS_OPEN] if not casos_df.empty else pd.DataFrame()
@@ -1890,11 +2007,15 @@ def main():
     try:
         editor_pwd = st.secrets.get('editor_password', '')
         viewer_pwd = st.secrets.get('viewer_password', '')
+        manager_codes = dict(st.secrets.get('manager_codes', {}))
+        viewer_codes = dict(st.secrets.get('viewer_codes', {}))
     except Exception:
         editor_pwd = ''
         viewer_pwd = ''
+        manager_codes = {}
+        viewer_codes = {}
 
-    if editor_pwd or viewer_pwd:
+    if editor_pwd or viewer_pwd or manager_codes or viewer_codes:
         if not st.session_state.get('authenticated'):
             st.markdown("""
             <div class="ms-header">
@@ -1902,19 +2023,36 @@ def main():
               <div class="ms-header-sub">Performance Cases &nbsp;·&nbsp; Making Sense</div>
             </div>
             """, unsafe_allow_html=True)
-            pwd = st.text_input('Contraseña', type='password', placeholder='Ingresá la contraseña')
+            pwd = st.text_input('Contraseña / Código de acceso', type='password',
+                                placeholder='Ingresá tu contraseña o código')
             if st.button('Ingresar', type='primary'):
                 if editor_pwd and pwd == editor_pwd:
                     st.session_state.authenticated = True
+                    st.session_state.role = 'editor'
                     st.session_state.read_only = False
                     st.rerun()
                 elif viewer_pwd and pwd == viewer_pwd:
                     st.session_state.authenticated = True
+                    st.session_state.role = 'viewer'
                     st.session_state.read_only = True
+                    st.rerun()
+                elif pwd and pwd in manager_codes:
+                    st.session_state.authenticated = True
+                    st.session_state.role = 'manager'
+                    st.session_state.read_only = False
+                    st.session_state.manager_email = manager_codes[pwd]
+                    st.rerun()
+                elif pwd and pwd in viewer_codes:
+                    st.session_state.authenticated = True
+                    st.session_state.role = 'viewer'
+                    st.session_state.read_only = True
+                    st.session_state.viewer_email = viewer_codes[pwd]
                     st.rerun()
                 else:
                     st.error('Contraseña incorrecta')
             st.stop()
+
+    role = st.session_state.setdefault('role', 'editor')
 
     st.markdown("""
     <div class="ms-header">
@@ -1941,12 +2079,18 @@ def main():
                 st.rerun()
             return
 
+    if role == 'manager':
+        mgr_email = st.session_state.get('manager_email', '')
+        casos_df = casos_df[casos_df['created_by'] == mgr_email] if not casos_df.empty else casos_df
+
     view = st.session_state.view
 
     # ── Form views (full screen, no tabs) ─────────────────────────────────────
     if view in ('new', 'edit', 'view_closed'):
-        _ro = st.session_state.get('read_only', False)
-        if view == 'new' and not _ro:
+        _ro = st.session_state.get('read_only', False) or role == 'manager'
+        if view == 'new' and role == 'manager':
+            show_manager_new_caso_form(empleados_df, bandas_df, st.session_state.get('manager_email', ''))
+        elif view == 'new' and not _ro:
             show_caso_form(empleados_df, bandas_df)
         elif view == 'new':
             st.session_state.view = 'open_list'
@@ -1964,14 +2108,26 @@ def main():
         return
 
     # ── List views with tabs ───────────────────────────────────────────────────
+    pending_count = (casos_df['status'] == STATUS_PENDING).sum() if not casos_df.empty else 0
     open_count = (casos_df['status'] == STATUS_OPEN).sum() if not casos_df.empty else 0
     closed_count = (casos_df['status'] == STATUS_CLOSED).sum() if not casos_df.empty else 0
 
-    tab_open, tab_closed, tab_metrics = st.tabs([
-        f'📂 Abiertos ({open_count})',
-        f'✅ Cerrados ({closed_count})',
-        '📊 Métricas',
-    ])
+    if role == 'manager':
+        tab_pending, tab_open, tab_closed = st.tabs([
+            f'🆕 Pendientes ({pending_count})',
+            f'📂 En análisis ({open_count})',
+            f'✅ Cerrados ({closed_count})',
+        ])
+    else:
+        tab_pending, tab_open, tab_closed, tab_metrics = st.tabs([
+            f'🆕 Pendientes ({pending_count})',
+            f'📂 Abiertos ({open_count})',
+            f'✅ Cerrados ({closed_count})',
+            '📊 Métricas',
+        ])
+
+    with tab_pending:
+        show_pending_list(casos_df)
 
     with tab_open:
         show_open_list(casos_df)
@@ -1979,8 +2135,9 @@ def main():
     with tab_closed:
         show_closed_list(casos_df)
 
-    with tab_metrics:
-        show_metrics(casos_df, empleados_df)
+    if role != 'manager':
+        with tab_metrics:
+            show_metrics(casos_df, empleados_df)
 
 
 if __name__ == '__main__':
